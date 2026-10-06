@@ -1,0 +1,7 @@
+{
+  "unknown_expiry_policy": "warn_and_place_last",
+  "non_expiring_ingredient_ids": ["ING_be9b1adc1759"],
+  "assumption_scope": "DEMO_ONLY_NOT_FOR_OPERATION",
+  "verification_mode": "DEMO_ONLY_NOT_FOR_OPERATION",
+  "assumption_note": "Explicit technical demo fixture matching the reviewed historical Demo bundle. This is not approval of a business expiry policy. Pass this file explicitly for raw Demo M4-M6; never load it automatically."
+}
