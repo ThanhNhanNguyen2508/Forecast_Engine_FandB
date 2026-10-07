@@ -289,6 +289,23 @@ class ConsequenceCostAssumption(StrictInventoryContract):
     expired_cost_per_unit: float = Field(default=0, ge=0)
     waste_cost_per_unit: float = Field(default=0, ge=0)
     capacity_quantity: float | None = Field(default=None, ge=0)
+    capacity_effective_from: date | None = None
+    capacity_effective_to: date | None = None
+
+    @model_validator(mode="after")
+    def validate_capacity_period(self):
+        if self.capacity_effective_from and self.capacity_effective_to and self.capacity_effective_to < self.capacity_effective_from:
+            raise ValueError("INVALID_CAPACITY_EFFECTIVE_PERIOD")
+        if self.capacity_quantity is None and (self.capacity_effective_from or self.capacity_effective_to):
+            raise ValueError("CAPACITY_PERIOD_REQUIRES_CAPACITY_VALUE")
+        return self
+
+    def capacity_on(self, day: date) -> float | None:
+        if self.capacity_effective_from and day < self.capacity_effective_from:
+            return None
+        if self.capacity_effective_to and day > self.capacity_effective_to:
+            return None
+        return self.capacity_quantity
 
 
 class LotConsumptionTrace(StrictInventoryContract):

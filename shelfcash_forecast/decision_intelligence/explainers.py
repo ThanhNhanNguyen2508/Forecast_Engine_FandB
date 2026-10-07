@@ -160,10 +160,12 @@ def build_bom_explanations(evidence: EvidencePackage) -> list[BOMExplanation]:
         )
 
     scenario_contributions = types.get("scenario_recipe_contribution", [])
+    from shelfcash_forecast.decision_intelligence.graph import _RelatedIndex
+    contribution_index = _RelatedIndex(scenario_contributions,("scenario_id","store_id","ingredient_id","target_date"))
     for item in types.get("ingredient_demand_scenario", []):
         payload = item.payload
         contributions = []
-        for source in _matching_contributions(item, scenario_contributions):
+        for source in _matching_contributions(item, list(contribution_index.matches(item))):
             values = source.payload
             contributions.append(
                 BOMContributionExplanation(

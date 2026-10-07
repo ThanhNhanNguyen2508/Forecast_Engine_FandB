@@ -1,0 +1,16 @@
+{
+  "train_rows": 4753,
+  "point_fit_rows_engine": 350,
+  "point_fit_rows_observed": 344,
+  "cqr_fit_rows_engine": 420,
+  "cqr_fit_rows_observed": 414,
+  "test_rows_engine": 875,
+  "test_rows_observed": 859,
+  "best_iterations_rule": "median_across_development_folds_by_quantile",
+  "best_iterations": {
+    "0.25": 243,
+    "0.5": 160,
+    "0.75": 142
+  },
+  "walk_forward_residual_source": "outer_development_oos_complete_selected_stack"
+}

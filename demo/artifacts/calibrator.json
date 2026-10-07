@@ -1,0 +1,60 @@
+{
+  "desired_coverage": 0.5,
+  "minimum_samples": 20,
+  "by_horizon": {
+    "1": {
+      "correction": 0.9951233309356979,
+      "sample_count": 74,
+      "quantile_level": 0.5135135135135135,
+      "source": "horizon_1"
+    },
+    "2": {
+      "correction": 0.6295130639734907,
+      "sample_count": 69,
+      "quantile_level": 0.5072463768115942,
+      "source": "horizon_2"
+    },
+    "3": {
+      "correction": 0.8849501964752449,
+      "sample_count": 64,
+      "quantile_level": 0.515625,
+      "source": "horizon_3"
+    },
+    "4": {
+      "correction": 0.9871597955974423,
+      "sample_count": 59,
+      "quantile_level": 0.5084745762711864,
+      "source": "horizon_4"
+    },
+    "5": {
+      "correction": 1.4271391078578048,
+      "sample_count": 54,
+      "quantile_level": 0.5185185185185185,
+      "source": "horizon_5"
+    },
+    "6": {
+      "correction": 0.8878422760679463,
+      "sample_count": 49,
+      "quantile_level": 0.5102040816326531,
+      "source": "horizon_6"
+    },
+    "7": {
+      "correction": 0.7605802903576695,
+      "sample_count": 45,
+      "quantile_level": 0.5111111111111111,
+      "source": "horizon_7"
+    }
+  },
+  "global_value": {
+    "correction": 0.8878998865602519,
+    "sample_count": 414,
+    "quantile_level": 0.5024154589371981,
+    "source": "global"
+  },
+  "semantics_version": "cqr-order-statistic-v2",
+  "calibration_target_semantics": "observed_sales_non_stockout",
+  "fit_target_start": "2026-07-01",
+  "fit_target_end": "2026-07-15",
+  "distinct_target_dates": 15,
+  "point_corrector_id": "m1-m2-research-res_07-seed42"
+}

@@ -1,0 +1,59 @@
+{
+  "features": [
+    "store_code",
+    "product_code",
+    "horizon",
+    "history_observation_count",
+    "last_observed_demand",
+    "cutoff_lag_1",
+    "cutoff_lag_2",
+    "cutoff_lag_7",
+    "cutoff_lag_14",
+    "cutoff_lag_28",
+    "rolling_mean_7",
+    "rolling_mean_14",
+    "rolling_mean_28",
+    "rolling_median_7",
+    "rolling_median_14",
+    "rolling_median_28",
+    "rolling_std_7",
+    "rolling_std_14",
+    "rolling_std_28",
+    "mean_last_7_minus_previous_7",
+    "stockout_count_7",
+    "stockout_count_28",
+    "stockout_rate_7",
+    "stockout_rate_28",
+    "seasonal_lag_7_target",
+    "seasonal_lag_14_target",
+    "seasonal_lag_28_target",
+    "target_day_of_week",
+    "target_is_weekend",
+    "target_month",
+    "target_day_of_month",
+    "target_week_of_month",
+    "target_week_of_year",
+    "target_is_holiday",
+    "target_store_closed",
+    "target_temperature",
+    "target_rainfall",
+    "calendar_available"
+  ],
+  "categorical_features": [
+    "store_code",
+    "product_code"
+  ],
+  "schema_version": "3.0",
+  "target_strategy": "seasonal_residual_signed",
+  "residual_blend_lambda": 1.0,
+  "best_iterations": {
+    "0.25": 243,
+    "0.5": 160,
+    "0.75": 142
+  },
+  "objectives": {
+    "0.25": "quantile",
+    "0.5": "quantile",
+    "0.75": "quantile"
+  }
+}

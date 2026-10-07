@@ -836,6 +836,11 @@ def _add_optimization_evidence(
         },
         payload={
             "recommended_strategy": result.recommended_strategy,
+            "technical_outcome": result.technical_outcome,
+            "technical_feasible": result.technical_feasible,
+            "business_ready": result.business_ready,
+            "execution_authorized": False,
+            "diagnostics": [d.model_dump(mode="json") for d in result.diagnostics],
             "status": result.status,
             "recommendation_rule": rule,
             "recommendation_rule_status": "RECORDED" if rule is not None else "UNAVAILABLE",

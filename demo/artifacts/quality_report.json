@@ -1,0 +1,14 @@
+{
+  "rows_received": 1120,
+  "rows_valid": 1120,
+  "duplicate_rows": 0,
+  "invalid_date_rows": 0,
+  "missing_product_rows": 0,
+  "missing_quantity_rows": 0,
+  "negative_sales_rows": 0,
+  "missing_stockout_rows": 0,
+  "stockout_information_missing": false,
+  "calendar_rows_received": 238,
+  "calendar_invalid_date_rows": 0,
+  "warnings": []
+}

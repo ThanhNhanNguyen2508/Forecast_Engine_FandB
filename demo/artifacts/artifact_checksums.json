@@ -1,0 +1,25 @@
+{
+  "algorithm": "sha256",
+  "files": {
+    "baseline_metrics.json": "ad0e7c19fad8f5dbb53eaf8a5a79fa5799efa83b52b2f946a6bead50bffa6da0",
+    "calibration_metrics.json": "a7f224f653e5d9c05790a01673821e137a15dd3f086ac2152268dc0d118a23be",
+    "calibration_predictions.parquet": "27f51bb0ebb389cfb53e8ebc469ab2b7bbb8dbd021bb0aa95ebeba45ee6814d5",
+    "calibrator.json": "8c7e10e03d3f4c8e964b001c9150055a9bcafd8b254533ef22be434743c03958",
+    "category_mappings.json": "c7987481abec8f51818156a047a706a0a83e267fd350029deb62c2a4a7842571",
+    "feature_schema.json": "7304c9cb12e6372743353a18816f7f581c68c10ffd3bf8b673f02d3d3c4ead0d",
+    "model_metadata.json": "f9079493fd52b8678a4cecc566b128b0122d0c1e7581d27972d932f12e009e8d",
+    "model_q25.txt": "45867558571f92d0cc13e17c33ea84bfeb14193ee7776e7b5d3379441928dc20",
+    "model_q50.txt": "1552b2b02bf1455d0937b81f217eb4d3e0d262006f9a19eb2608dd5037149402",
+    "model_q75.txt": "73add9795e37b47d5890dcd314bbcbb5614c8fd7c6903c7b2f0760d631d88588",
+    "point_corrector.json": "75bf5d03eac703755083a1b812b5c9886fce60bf019b6cbf62a30c022f7ce35e",
+    "point_fit_predictions.parquet": "74972aa7081b0f6c66d4d752846945a90403b18c34dd6efe5416cacfd8b7ecb2",
+    "preprocessing_config.json": "2da8d42f7bbb2cf4ac575ed257d533e5bd56b17abd26d5e0bed7540ed07ddaa5",
+    "quality_report.json": "6028917933be8d3b6f1191eeea2c43b00a1a74e9fe253f5bca8167f43696177e",
+    "test_metrics.json": "645e37a77861b74f0ec8a520b1cb098160c37c09c873b430314cc98c608206dc",
+    "test_predictions.parquet": "b92ce5830aafec96349eeb1f4aac5bcb44701dbcb6d748206b4fcb20af2efc0a",
+    "training_manifest.json": "9844d692585b3f4c6c3c4efe265beea75794a99e5642dd87eac59738b73ff4e6",
+    "walk_forward_metrics.json": "d79e69fdeb0fc5ddd4821fc6c8f4fc83b8c8733a75b4057eac25a127bc8c6fed",
+    "walk_forward_predictions.parquet": "e96a1369800312f2b68527275403b8a699bd9a8adba037a7b59a1f135a41b10b",
+    "walk_forward_residuals.parquet": "c9b6445aa7324375aaf896adaec892c51d4b36fb6fe83036a65f67ddff2eeb6d"
+  }
+}

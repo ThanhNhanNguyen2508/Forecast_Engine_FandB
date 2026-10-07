@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from datetime import date, timedelta
 
 import pandas as pd
-from pydantic import Field
+from pydantic import Field, StrictInt
 
 from shelfcash_forecast.inventory.contracts import (
     ConsequenceCostAssumption,
@@ -23,7 +23,7 @@ from shelfcash_forecast.inventory.simulator import simulate_inventory
 class StressScenarioDefinition(StrictInventoryContract):
     stress_id: str = Field(min_length=1)
     demand_multiplier: float = Field(default=1, ge=0)
-    supplier_delay_days: int = Field(default=0, ge=0)
+    supplier_delay_days: StrictInt = Field(default=0, ge=0)
     supplier_ids: set[str] = Field(default_factory=set)
     preserve_remaining_shelf_life: bool = False
     description: str | None = None
@@ -88,6 +88,7 @@ def apply_stress(
         )
         return type(delivery).model_validate(values)
 
+    stressed_demand = InventoryDemandScenario.model_validate(stressed_demand.model_dump())
     return stressed_demand, [delay(item) for item in inbound], [
         delay(item) for item in planned_inbound
     ]

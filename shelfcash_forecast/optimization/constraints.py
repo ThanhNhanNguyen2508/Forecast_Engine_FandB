@@ -38,7 +38,9 @@ import math
 from collections.abc import Sequence
 from datetime import timedelta
 
-from shelfcash_forecast.bom.units import normalize_unit
+from shelfcash_forecast.bom.units import normalize_unit, UnitConverter
+from shelfcash_forecast.optimization.chronology import offer_arrival
+from shelfcash_forecast.optimization.shipment_fees import allocate_delivery_fees
 from shelfcash_forecast.optimization.contracts import (
     ProcurementPlan,
     SupplierConstraint,
@@ -53,12 +55,17 @@ def validate_plan_constraints(
     *,
     budget: float | None = None,
     tolerance: float = 1e-8,
+    unit_conversions: Sequence = (),
 ) -> tuple[list[str], dict[str, bool]]:
     violations: list[str] = []
     offer_map = {offer.offer_id: offer for offer in offers}
+    converter = UnitConverter(unit_conversions)
     all_lines = [*plan.orders]
     for lines in plan.scenario_recourse_orders.values():
         all_lines.extend(lines)
+    if len({l.offer_id for l in all_lines}) != len(all_lines):
+        violations.append('DUPLICATE_DECISION_OPPORTUNITY')
+    expected_fees=allocate_delivery_fees([l for l in all_lines if l.offer_id in offer_map],offer_map)
     for line in all_lines:
         offer = offer_map.get(line.offer_id)
         if offer is None:
@@ -73,13 +80,13 @@ def validate_plan_constraints(
             violations.append(f"OFFER_IDENTITY:{line.offer_id}")
         if line.order_date != offer.order_date:
             violations.append(f"ORDER_DATE:{line.offer_id}")
-        if line.arrival_date != line.order_date + timedelta(days=offer.lead_time_days):
+        if line.arrival_date != offer_arrival(offer):
             violations.append(f"LEAD_TIME:{line.offer_id}")
         if not math.isclose(line.pack_size, offer.pack_size):
             violations.append(f"PACK_SIZE:{line.offer_id}")
         if not math.isclose(line.unit_price, offer.unit_price):
             violations.append(f"UNIT_PRICE:{line.offer_id}")
-        if not math.isclose(line.delivery_cost, offer.delivery_cost):
+        if not math.isclose(line.delivery_cost, expected_fees[line.offer_id],abs_tol=tolerance):
             violations.append(f"DELIVERY_COST:{line.offer_id}")
         if line.shelf_life_days != offer.shelf_life_days:
             violations.append(f"SHELF_LIFE:{line.offer_id}")
@@ -108,6 +115,8 @@ def validate_plan_constraints(
     first_stage_cost = sum(
         line.purchase_cost + line.delivery_cost for line in plan.orders
     )
+    if not math.isclose(plan.purchase_cost,first_stage_cost,abs_tol=tolerance):
+        violations.append('COMMITTED_COST_TOTAL_MISMATCH')
     if budget is not None and first_stage_cost > budget + tolerance:
         violations.append("BUDGET")
     line_groups = [("FIRST_STAGE", plan.orders)] + [
@@ -129,10 +138,8 @@ def validate_plan_constraints(
             if (
                 constraint.maximum_total_quantity is not None
                 and sum(
-                    line.order_quantity
+                    line.order_quantity * converter.conversion_factor(line.ingredient_id,line.unit,constraint.unit or "")
                     for line in scoped
-                    if normalize_unit(line.unit)
-                    == normalize_unit(constraint.unit or "")
                 )
                 > constraint.maximum_total_quantity + tolerance
             ):

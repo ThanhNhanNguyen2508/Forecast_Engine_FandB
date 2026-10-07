@@ -1,0 +1,65 @@
+{
+  "horizons": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "quantiles": [
+    0.25,
+    0.5,
+    0.75
+  ],
+  "minimum_history_observations": 28,
+  "reconstruction_minimum_reference_count": 3,
+  "reconstruction_lookback_days": 84,
+  "reconstruction_high_support_threshold": 6,
+  "reconstruction_high_recency_days": 14,
+  "reconstruction_medium_recency_days": 28,
+  "reconstruction_high_dispersion_threshold": 0.25,
+  "reconstruction_medium_dispersion_threshold": 0.5,
+  "calibration_days": 28,
+  "test_days": 28,
+  "nominal_coverage": 0.5,
+  "minimum_calibration_samples": 20,
+  "lag_days": [
+    1,
+    2,
+    7,
+    14,
+    28
+  ],
+  "rolling_windows": [
+    7,
+    14,
+    28
+  ],
+  "target_seasonal_lags": [
+    7,
+    14,
+    28
+  ],
+  "walk_forward_minimum_train_days": 84,
+  "walk_forward_validation_days": 14,
+  "walk_forward_step_days": 14,
+  "walk_forward_maximum_folds": 3,
+  "random_seed": 42,
+  "default_store_key": "STORE_DEFAULT",
+  "lightgbm_params": {
+    "learning_rate": 0.06,
+    "n_estimators": 1500,
+    "num_leaves": 7,
+    "min_child_samples": 80,
+    "subsample": 0.9,
+    "subsample_freq": 1,
+    "colsample_bytree": 0.9,
+    "reg_alpha": 0.05,
+    "reg_lambda": 5.0,
+    "random_state": 42,
+    "n_jobs": 4,
+    "verbosity": -1
+  }
+}

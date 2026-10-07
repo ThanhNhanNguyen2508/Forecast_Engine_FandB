@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Annotated, Any, Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, StrictInt, field_validator, model_validator
 
 from shelfcash_forecast.decision_intelligence.contracts import (
     FinalDecisionPackage,
@@ -15,6 +15,7 @@ from shelfcash_forecast.decision_intelligence.integrity import (
 )
 from shelfcash_forecast.inventory.contracts import InventoryLot
 from shelfcash_forecast.optimization.contracts import (
+    SupplyCalendar,
     OptimizationRequest,
     OptimizationResult,
     StrategyName,
@@ -57,6 +58,9 @@ class SupplierOfferModification(StrictDecisionContract):
     modification_type: Literal["SUPPLIER_OFFER"] = "SUPPLIER_OFFER"
     offer_id: str = Field(min_length=1)
     available: bool | None = None
+    pack_size: float | None = Field(default=None,gt=0)
+    calendar: SupplyCalendar | None = None
+    delivery_weekdays: list[StrictInt] | None = None
     unit_price: float | None = Field(default=None, ge=0)
     delivery_cost: float | None = Field(default=None, ge=0)
     minimum_order_quantity: float | None = Field(default=None, ge=0)
@@ -72,6 +76,9 @@ class SupplierOfferModification(StrictDecisionContract):
     @model_validator(mode="after")
     def require_change(self) -> SupplierOfferModification:
         values = (
+            self.pack_size,
+            self.calendar,
+            self.delivery_weekdays,
             self.available,
             self.unit_price,
             self.delivery_cost,

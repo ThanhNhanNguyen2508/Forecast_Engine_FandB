@@ -1,0 +1,70 @@
+{
+  "method": "horizon_shrunk_median_residual",
+  "global_value": {
+    "offset": -0.4205226503345294,
+    "task_count": 344,
+    "distinct_target_dates": 13,
+    "source": "global_median_residual",
+    "shrinkage_weight": 1.0
+  },
+  "by_horizon": {
+    "1": {
+      "offset": -1.1673583122427618,
+      "task_count": 64,
+      "distinct_target_dates": 13,
+      "source": "horizon_1_shrunk_to_global",
+      "shrinkage_weight": 0.7619047619047619
+    },
+    "2": {
+      "offset": -0.7331894255545093,
+      "task_count": 59,
+      "distinct_target_dates": 12,
+      "source": "horizon_2_shrunk_to_global",
+      "shrinkage_weight": 0.7468354430379747
+    },
+    "3": {
+      "offset": -0.49426555754489654,
+      "task_count": 54,
+      "distinct_target_dates": 11,
+      "source": "horizon_3_shrunk_to_global",
+      "shrinkage_weight": 0.7297297297297297
+    },
+    "4": {
+      "offset": -0.31477981822544765,
+      "task_count": 49,
+      "distinct_target_dates": 10,
+      "source": "horizon_4_shrunk_to_global",
+      "shrinkage_weight": 0.7101449275362319
+    },
+    "5": {
+      "offset": 0.00381548644216978,
+      "task_count": 44,
+      "distinct_target_dates": 9,
+      "source": "horizon_5_shrunk_to_global",
+      "shrinkage_weight": 0.6875
+    },
+    "6": {
+      "offset": -0.06751400578559405,
+      "task_count": 39,
+      "distinct_target_dates": 8,
+      "source": "horizon_6_shrunk_to_global",
+      "shrinkage_weight": 0.6610169491525424
+    },
+    "7": {
+      "offset": -0.2012966297291479,
+      "task_count": 35,
+      "distinct_target_dates": 7,
+      "source": "horizon_7_shrunk_to_global",
+      "shrinkage_weight": 0.6363636363636364
+    }
+  },
+  "fit_target_start": "2026-06-17",
+  "fit_target_end": "2026-06-29",
+  "fit_actual_known_at_cutoff": "2026-06-30",
+  "calibration_target_semantics": "observed_sales_non_stockout",
+  "model_id": "m1-m2-research-res_07-seed42",
+  "minimum_group_tasks": 30,
+  "minimum_group_distinct_target_dates": 7,
+  "shrinkage_strength": 20.0,
+  "semantics_version": "additive-median-residual-v1"
+}

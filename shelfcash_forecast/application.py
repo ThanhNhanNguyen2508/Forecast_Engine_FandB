@@ -28,6 +28,7 @@ class ForecastPlanConfig(BaseModel):
     scenario_method: Literal["residual_bootstrap", "gaussian_copula"] = (
         "residual_bootstrap"
     )
+    yield_loss_policy: Literal["RECIPE_FIXED"] = "RECIPE_FIXED"
     optimization_mode: Literal["deterministic", "stochastic", "compare"] = "compare"
     planning_config: Path | None = None
     explanation_mode: Literal["deterministic", "llm"] = "deterministic"
@@ -86,41 +87,10 @@ def _write_json(path: Path, value: Any) -> None:
 
 
 def _cost_assumptions(offers: list[Any], planning: dict[str, Any]) -> list[Any]:
-    from shelfcash_forecast.inventory.contracts import ConsequenceCostAssumption
+    from shelfcash_forecast.optimization.planning_config import load_planning_config
+    from shelfcash_forecast.optimization.planning_service import cost_assumptions
 
-    policy = planning["cost_policy"]
-    required = {
-        "holding_cost_rate_per_day",
-        "shortage_cost_multiplier",
-        "expired_cost_multiplier",
-        "waste_cost_multiplier",
-    }
-    missing = required - set(policy)
-    if missing:
-        raise ValueError(f"PLANNING_COST_CONFIG_MISSING:{sorted(missing)}")
-    output = []
-    seen: set[tuple[str, str, str]] = set()
-    for offer in offers:
-        key = (offer.store_id, offer.ingredient_id, offer.unit)
-        if key in seen:
-            continue
-        seen.add(key)
-        output.append(
-            ConsequenceCostAssumption(
-                store_id=offer.store_id,
-                ingredient_id=offer.ingredient_id,
-                unit=offer.unit,
-                holding_cost_per_unit_day=offer.unit_price
-                * float(policy["holding_cost_rate_per_day"]),
-                shortage_cost_per_unit=offer.unit_price
-                * float(policy["shortage_cost_multiplier"]),
-                expired_cost_per_unit=offer.unit_price
-                * float(policy["expired_cost_multiplier"]),
-                waste_cost_per_unit=offer.unit_price
-                * float(policy["waste_cost_multiplier"]),
-            )
-        )
-    return output
+    return cost_assumptions(offers, load_planning_config(planning)[0])
 
 
 def run_forecast_plan(config: ForecastPlanConfig) -> ForecastPlanResult:
@@ -266,16 +236,6 @@ def run_forecast_plan(config: ForecastPlanConfig) -> ForecastPlanResult:
         "issues": [item.code for item in ingredient.issues],
     }
 
-    ingredient_scenarios = predict_ingredient_demand_scenarios(
-        canonical,
-        artifact_dir,
-        config.cutoff_date.isoformat(),
-        config.horizon,
-        n_scenarios=config.scenario_count,
-        seed=config.seed,
-        scenario_method=config.scenario_method,
-        execution_mode=config.execution_mode,
-    )
     residuals = load_residual_history(artifact_dir)
     product_scenarios = generate_product_demand_scenarios(
         forecast,
@@ -284,6 +244,12 @@ def run_forecast_plan(config: ForecastPlanConfig) -> ForecastPlanResult:
         seed=config.seed,
         method=config.scenario_method,
     )
+    from shelfcash_forecast.scenario.bom import propagate_ingredient_demand_scenarios
+    from shelfcash_forecast.scenario.yield_loss import FixedRecipeYieldLossModel
+    ingredient_scenarios = propagate_ingredient_demand_scenarios(
+        product_scenarios, canonical['recipes'], canonical.get('unit_conversions'),
+        yield_loss_model=FixedRecipeYieldLossModel(),
+    )
     steps["scenarios"] = {
         "status": "EXECUTED",
         "requested_mode": config.scenario_method,
@@ -291,6 +257,8 @@ def run_forecast_plan(config: ForecastPlanConfig) -> ForecastPlanResult:
         "count": len(ingredient_scenarios.scenarios),
         "seed": config.seed,
         "residual_as_of": config.cutoff_date.isoformat(),
+        "yield_loss_source": "recipe_fixed",
+        "yield_loss_model_fitted": False,
     }
 
     lots, snapshot = create_inventory_lots(config.bundle_directory)
@@ -339,122 +307,51 @@ def run_forecast_plan(config: ForecastPlanConfig) -> ForecastPlanResult:
         _write_json(output / "application_result.json", result.model_dump(mode="json"))
         return result
 
-    planning = json.loads(Path(config.planning_config).read_text(encoding="utf-8"))
-    if config.execution_mode == "demo" and planning.get("label") != "DEMO_ONLY_NOT_FOR_OPERATION":
-        raise ValueError("DEMO_PLANNING_CONFIG_LABEL_REQUIRED")
-    offers = create_supplier_offers(config.bundle_directory, config.cutoff_date)
-    costs = _cost_assumptions(offers, planning)
-    optimization_scenario_count = min(
-        len(inventory_scenarios),
-        int(planning.get("optimization_scenario_count", len(inventory_scenarios))),
+    from shelfcash_forecast.optimization.planning_service import run_bundle_planning
+    from shelfcash_forecast.optimization.export import export_planning_run
+
+    planning_run = run_bundle_planning(
+        config.bundle_directory, planning=config.planning_config, lots=lots,
+        snapshot=snapshot, policy=policy, scenarios=inventory_scenarios,
+        decision_date=config.cutoff_date,
+        planning_end_date=config.cutoff_date + timedelta(days=config.horizon),
+        seed=config.seed, optimization_mode=config.optimization_mode,
+        execution_mode=config.execution_mode,
     )
-    if optimization_scenario_count < 2 and config.optimization_mode in {"stochastic", "compare"}:
-        raise ValueError("STOCHASTIC_OPTIMIZATION_REQUIRES_AT_LEAST_TWO_SCENARIOS")
-    optimization_scenarios = [
-        scenario.model_copy(update={"probability_weight": 1.0 / optimization_scenario_count})
-        for scenario in inventory_scenarios[:optimization_scenario_count]
-    ]
-    optimization_ingredient_bundle = ingredient_scenarios.model_copy(
-        update={
-            "scenarios": [
-                scenario.model_copy(
-                    update={"probability_weight": 1.0 / optimization_scenario_count}
-                )
-                for scenario in ingredient_scenarios.scenarios[
-                    :optimization_scenario_count
-                ]
-            ]
-        }
-    )
-    optimization_product_bundle = product_scenarios.model_copy(
-        update={
-            "scenarios": [
-                scenario.model_copy(
-                    update={"probability_weight": 1.0 / optimization_scenario_count}
-                )
-                for scenario in product_scenarios.scenarios[
-                    :optimization_scenario_count
-                ]
-            ]
-        }
-    )
-    request_common = {
-        "decision_date": config.cutoff_date,
-        "planning_end_date": config.cutoff_date + timedelta(days=config.horizon),
-        "initial_inventory": lots,
-        "demand_scenarios": optimization_scenarios,
-        "supplier_offers": offers,
-        "cost_assumptions": costs,
-        "strategy_profiles": default_strategy_profiles(),
-        "budget": planning.get("budget"),
-        "inventory_policy": policy,
-        "seed": config.seed,
-        "inventory_snapshot_date": snapshot,
-        "inventory_snapshot_boundary": "EOD",
-        "unknown_constraints": [
-            "DEMO_CONSEQUENCE_COSTS_NOT_APPROVED"
-            if planning.get("label") == "DEMO_ONLY_NOT_FOR_OPERATION"
-            else ""
-        ],
-    }
-    request_common["unknown_constraints"] = [
-        item for item in request_common["unknown_constraints"] if item
-    ]
-    optimization_runs: dict[str, tuple[Any, Any]] = {}
-    modes = (
-        ["deterministic", "stochastic"]
-        if config.optimization_mode == "compare"
-        else [config.optimization_mode]
-    )
-    for mode in modes:
-        request = OptimizationRequest(
-            request_id=f"{bundle.manifest.run_id}-{mode}",
-            **request_common,
-            stochastic=mode == "stochastic",
-            allow_mode_fallback=False,
-        )
-        optimization_runs[mode] = (request, optimize_procurement(request))
+    export_planning_run(planning_run, output / "m5")
+    planning = planning_run.config.model_dump(mode="json")
+    selected_mode = planning_run.selected_mode
+    selected_request, selected_result = planning_run.request, planning_run.result
     optimization_payload = {
-        mode: {
-            "request": request.model_dump(mode="json"),
-            "result": value.model_dump(mode="json"),
-        }
-        for mode, (request, value) in optimization_runs.items()
+        mode: {"request": request.model_dump(mode="json"),
+               "result": value.model_dump(mode="json")}
+        for mode, (request, value) in planning_run.runs.items()
     }
     optimization_path = output / "optimization_result.json"
     _write_json(optimization_path, optimization_payload)
     artifacts["optimization_result"] = str(optimization_path)
+    artifacts["accepted_technical_plan"] = str(output / "m5/accepted_technical_plan.json")
+    artifacts["accepted_technical_orders"] = str(output / "m5/accepted_technical_orders.csv")
     steps["M5"] = {
-        "status": "EXECUTED_WITH_DEMO_ASSUMPTIONS"
-        if planning.get("label") == "DEMO_ONLY_NOT_FOR_OPERATION"
-        else "EXECUTED",
+        "status": selected_result.technical_outcome,
         "requested_mode": config.optimization_mode,
-        "actual_modes": {
-            mode: result.provenance.get("actual_mode")
-            for mode, (_, result) in optimization_runs.items()
-        },
-        "results": {
-            mode: {
-                "status": result.status,
-                "recommended_strategy": result.recommended_strategy,
-            }
-            for mode, (_, result) in optimization_runs.items()
-        },
-        "same_evaluation_scenarios": True,
-        "optimization_scenario_count": optimization_scenario_count,
-        "m4_diagnostic_scenario_count": len(inventory_scenarios),
-        "same_sample_optimism": True,
+        "selected_mode": selected_mode,
+        "results": {mode: {"status": value.status,
+                           "technical_outcome": value.technical_outcome,
+                           "recommended_strategy": value.recommended_strategy}
+                    for mode, (_, value) in planning_run.runs.items()},
+        "optimization_scenario_count": len(selected_request.demand_scenarios),
+        "evaluation_scenario_count": len(inventory_scenarios),
+        "evaluation_scope": "FULL_M4_POOL",
     }
 
-    selected_mode = "stochastic" if "stochastic" in optimization_runs else modes[0]
-    selected_request, selected_result = optimization_runs[selected_mode]
     decision = build_final_decision_package(
         selected_request,
         selected_result,
         forecast_package=forecast,
         ingredient_demand_package=ingredient,
-        ingredient_scenario_bundle=optimization_ingredient_bundle,
-        product_scenario_bundle=optimization_product_bundle,
+        ingredient_scenario_bundle=ingredient_scenarios,
+        product_scenario_bundle=product_scenarios,
     )
     requested_explanation = config.explanation_mode
     actual_explanation = "deterministic"
@@ -491,6 +388,8 @@ def run_forecast_plan(config: ForecastPlanConfig) -> ForecastPlanResult:
         "decision_status": decision.decision_status,
         "recommended_strategy": decision.recommended_strategy,
         "order_count": len(decision.immediate_orders),
+        "scheduled_order_count": len(decision.scheduled_orders),
+        "technical_outcome": selected_result.technical_outcome,
         "requested_explanation_mode": requested_explanation,
         "actual_explanation_mode": actual_explanation,
         "fallback_reason": fallback_reason,
@@ -503,7 +402,7 @@ def run_forecast_plan(config: ForecastPlanConfig) -> ForecastPlanResult:
     result = ForecastPlanResult(
         status="COMPLETED",
         execution_mode=config.execution_mode,
-        business_ready=config.execution_mode == "production" and not demo_only,
+        business_ready=selected_result.business_ready,
         demo_only=demo_only,
         steps=steps,
         artifacts=artifacts,

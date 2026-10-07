@@ -64,7 +64,7 @@ def build_part2_fixture() -> Part2Fixture:
         InventoryDemandScenario(
             scenario_id=scenario_id,
             probability_weight=0.5,
-            simulation_start_date=decision_date,
+            simulation_start_date=decision_date + timedelta(days=1),
             simulation_end_date=planning_end,
             lines=[
                 InventoryDemandLine(
@@ -76,7 +76,7 @@ def build_part2_fixture() -> Part2Fixture:
                     unit="kg",
                 )
             ],
-            provenance={"fixture": "part2-production-authority"},
+            provenance={"fixture": "SYNTHETIC_PART2_NOT_FOR_OPERATION"},
         )
         for scenario_id, quantity in (("LOW", 4.0), ("HIGH", 8.0))
     ]
@@ -109,7 +109,7 @@ def build_part2_fixture() -> Part2Fixture:
                 delivery_cost=1,
                 minimum_order_quantity=1,
                 maximum_order_quantity=20,
-                lead_time_days=0,
+                lead_time_days=1,
                 shelf_life_days=2,
             )
         ],
@@ -136,6 +136,9 @@ def build_part2_fixture() -> Part2Fixture:
         ],
         stress_base_scenario_id="LOW",
         stochastic=True,
+        environment="SYNTHETIC",
+        inventory_snapshot_date=decision_date,
+        inventory_snapshot_boundary="EOD",
         seed=20260814,
     )
     gateway = AuditedGateway()

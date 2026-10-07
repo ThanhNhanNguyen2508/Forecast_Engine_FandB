@@ -39,10 +39,17 @@ $StopAfter = $StopAfter.ToLowerInvariant()
 $ExecutionMode = $ExecutionMode.ToLowerInvariant()
 $OptimizationMode = $OptimizationMode.ToLowerInvariant()
 $DateLocale = $DateLocale.ToUpperInvariant()
+$PipelineRepositoryRoot = Split-Path -Parent $PSScriptRoot
 $PipelineEngineRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $PipelineSourceRoot = Join-Path $PipelineEngineRoot 'source_code'
+if ((Test-Path -LiteralPath (Join-Path $PipelineRepositoryRoot 'shelfcash.config.json')) -and
+    (Test-Path -LiteralPath (Join-Path $PipelineRepositoryRoot 'pyproject.toml'))) {
+    $PipelineEngineRoot = $PipelineRepositoryRoot
+    $PipelineSourceRoot = $PipelineRepositoryRoot
+}
 if (-not $Python) {
-    $Python = Join-Path $PipelineEngineRoot '.venv-preprocess\Scripts\python.exe'
+    $Python = Join-Path $PipelineEngineRoot '.venv\Scripts\python.exe'
+    if (-not (Test-Path -LiteralPath $Python)) { $Python = Join-Path $PipelineEngineRoot '.venv-preprocess\Scripts\python.exe' }
 }
 if (-not (Test-Path -LiteralPath $Python -PathType Leaf)) {
     throw "Python executable not found: $Python"

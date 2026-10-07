@@ -81,6 +81,11 @@ def evaluate_artifact_coherence(
 
     request = inputs.optimization_request
     result = inputs.optimization_result
+    if request.planning_mode=='SCENARIO_PREVIEW':
+        for evaluation in result.evaluations.values():
+            if evaluation.plan.solver_status=='OPTIMAL' and evaluation.plan.provenance.get('planning_binding')!=request.planning_binding:
+                add('M6_COHERENCE_PROFILE_BINDING_MISMATCH','ERROR','Plan profile/assumptions differ from the request.',
+                    'optimization_request.planning_binding','optimization_result.evaluations')
     if request.request_id != result.request_id:
         add(
             "M6_COHERENCE_REQUEST_ID_MISMATCH",
@@ -384,7 +389,8 @@ def evaluate_artifact_coherence(
                 "optimization_request",
             )
 
-    request_weights = _scenario_weights(request.demand_scenarios)
+    evaluation_worlds = request.evaluation_scenarios or request.demand_scenarios
+    request_weights = _scenario_weights(evaluation_worlds)
     if product_bundle is not None and not _weights_match(
         _scenario_weights(product_bundle.scenarios), request_weights
     ):
@@ -457,7 +463,7 @@ def evaluate_artifact_coherence(
                 line.target_date,
                 line.unit,
             ): line.quantity
-            for scenario in request.demand_scenarios
+            for scenario in evaluation_worlds
             for line in scenario.lines
         }
         if any(
@@ -489,7 +495,7 @@ def evaluate_artifact_coherence(
         simulation = evaluation.simulation
         if simulation is None:
             continue
-        if {item.scenario_id for item in simulation.results} != request_scenario_ids:
+        if not _weights_match(_scenario_weights(simulation.results), request_weights):
             add(
                 "M6_COHERENCE_EXACT_M4_SCENARIO_IDENTITY_MISMATCH",
                 "ERROR",
@@ -497,6 +503,28 @@ def evaluate_artifact_coherence(
                 f"optimization_result.evaluations.{strategy}.simulation.results",
                 "optimization_request.demand_scenarios",
             )
+        if evaluation.physics_simulation is not None:
+            declared = set(evaluation.plan.provenance.get("physics_scenario_ids", []))
+            if {s.scenario_id for s in evaluation.physics_simulation.results} != declared:
+                add("M6_COHERENCE_MODEL_PHYSICS_SCOPE_MISMATCH", "ERROR",
+                    "Exact model-validation worlds do not match declared solver physics scope.",
+                    f"optimization_result.evaluations.{strategy}.physics_simulation")
+            if evaluation.plan.provenance.get("mode") == "stochastic" and not declared <= request_scenario_ids:
+                add("M6_COHERENCE_FOREIGN_PHYSICS_WORLD", "ERROR", "Model-validation world is foreign to the M4 pool.",
+                    f"optimization_result.evaluations.{strategy}.physics_simulation")
+            if evaluation.plan.provenance.get("mode") == "stochastic" and declared <= request_scenario_ids:
+                mass=sum(float(request_weights[sid] or 0) for sid in declared)
+                expected={sid:float(request_weights[sid])/mass for sid in declared} if mass>0 and all(
+                    request_weights[sid] is not None for sid in declared) else {}
+                if not _weights_match(_scenario_weights(evaluation.physics_simulation.results),expected):
+                    add("M6_COHERENCE_MODEL_PHYSICS_WEIGHT_MISMATCH", "ERROR",
+                        "Model-validation weights do not match the declared conditional full-pool distribution.",
+                        f"optimization_result.evaluations.{strategy}.physics_simulation.results")
+            if evaluation.plan.provenance.get("mode") == "deterministic" and not _weights_match(
+                _scenario_weights(evaluation.physics_simulation.results),{"__DETERMINISTIC_MEAN__":1.0}):
+                add("M6_COHERENCE_MODEL_PHYSICS_WEIGHT_MISMATCH", "ERROR",
+                    "Deterministic physics validation requires the single unit-weight mean-demand world.",
+                    f"optimization_result.evaluations.{strategy}.physics_simulation.results")
         if (
             simulation.simulation_start_date > latest_simulation_start
             or simulation.simulation_end_date < request.planning_end_date

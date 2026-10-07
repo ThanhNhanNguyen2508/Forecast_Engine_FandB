@@ -1,0 +1,30 @@
+{
+  "selected_observed": {
+    "tasks": 859,
+    "distinct_target_dates": 28,
+    "distinct_outcomes": 137,
+    "sum_abs_actual": 29334.0,
+    "sum_abs_error": 4501.362850366011,
+    "mae": 5.240236147108279,
+    "wape_ratio": 0.15345206417011015,
+    "bias": 2.4755169583500534,
+    "coverage": 0.420256111757858,
+    "coverage_gap": -0.07974388824214201,
+    "raw_interval_coverage": 0.2968568102444703,
+    "mean_width": 6.985249707722915,
+    "median_width": 6.719881779386849,
+    "interval_score": 17.607218362484087,
+    "pinball_q25": 2.622959462389373,
+    "pinball_q50": 2.6201180735541394,
+    "pinball_q75": 1.9115061014742325,
+    "raw_pinball_q25": 2.7188864750569253,
+    "raw_pinball_q50": 2.675466103174988,
+    "raw_pinball_q75": 1.9166345567251208,
+    "raw_crossing_rate": 0.03608847497089639,
+    "repaired_crossing_rate": 0.0,
+    "p50_changed_by_repair": 31,
+    "nonfinite_predictions": 0,
+    "invalid_intervals": 0,
+    "median_outside_interval": 0
+  }
+}

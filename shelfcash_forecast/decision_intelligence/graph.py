@@ -94,6 +94,31 @@ def _related(left: EvidenceItem, right: EvidenceItem, keys: tuple[str, ...]) -> 
     return bool(shared) and all(left.entities[key] == right.entities[key] for key in shared)
 
 
+class _RelatedIndex:
+    """Equivalent to _related, including its partial-entity matching semantics."""
+
+    def __init__(self, items, keys):
+        self.keys = keys
+        self.groups = {}
+        self.cache = {}
+        for item in items:
+            mask = tuple(key for key in keys if key in item.entities)
+            self.groups.setdefault(mask, []).append(item)
+
+    def matches(self, left):
+        for mask, rows in self.groups.items():
+            shared = tuple(key for key in mask if key in left.entities)
+            if not shared:
+                continue
+            cache_key = mask, shared
+            if cache_key not in self.cache:
+                lookup = {}
+                for row in rows:
+                    lookup.setdefault(tuple(row.entities[k] for k in shared), []).append(row)
+                self.cache[cache_key] = lookup
+            yield from self.cache[cache_key].get(tuple(left.entities[k] for k in shared), [])
+
+
 def build_decision_graph(evidence: EvidencePackage) -> DecisionGraph:
     """Build a deterministic typed provenance graph over normalized evidence."""
 
@@ -196,8 +221,9 @@ def build_decision_graph(evidence: EvidencePackage) -> DecisionGraph:
         *by_type.get("scenario_recipe_contribution", []),
     ]
     forecasts = by_type.get("forecast_prediction", [])
+    contribution_index = _RelatedIndex(contributions,("scenario_id", "store_id", "ingredient_id", "target_date"))
     for ingredient in ingredient_items:
-        for contribution in contributions:
+        for contribution in contribution_index.matches(ingredient):
             if _related(
                 ingredient,
                 contribution,
@@ -215,8 +241,9 @@ def build_decision_graph(evidence: EvidencePackage) -> DecisionGraph:
                 add_edge(contribution, forecast, "DERIVED_FROM")
 
     product_scenarios = by_type.get("product_demand_scenario", [])
+    product_index = _RelatedIndex(product_scenarios,("scenario_id", "store_id", "product_id", "target_date"))
     for contribution in by_type.get("scenario_recipe_contribution", []):
-        for product_scenario in product_scenarios:
+        for product_scenario in product_index.matches(contribution):
             if _related(
                 contribution,
                 product_scenario,
@@ -250,6 +277,7 @@ def build_decision_graph(evidence: EvidencePackage) -> DecisionGraph:
                 add_edge(inventory, risk, "HAS_RISK")
 
     inventory_keys = by_type.get("inventory_key_summary", [])
+    inventory_index = _RelatedIndex(inventory_keys,("strategy", "scenario_id", "store_id", "ingredient_id"))
     lot_edge_types = {
         "lot_consumption": "CONSUMED_BY",
         "lot_expiry": "EXPIRED_AS",
@@ -257,7 +285,7 @@ def build_decision_graph(evidence: EvidencePackage) -> DecisionGraph:
     }
     for evidence_type, edge_type in lot_edge_types.items():
         for lot in by_type.get(evidence_type, []):
-            for inventory in inventory_keys:
+            for inventory in inventory_index.matches(lot):
                 if _related(
                     lot,
                     inventory,

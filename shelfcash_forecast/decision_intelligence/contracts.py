@@ -497,6 +497,12 @@ class DecisionAnswer(StrictDecisionContract):
 
 
 class FinalDecisionPackage(StrictDecisionContract):
+    schema_version: Literal[2] = 2
+    technical_outcome: str = "NOT_EVALUATED"
+    technical_feasible: bool | None = None
+    business_ready: Literal[False] = False
+    execution_authorized: Literal[False] = False
+    operational_status: Literal["NOT_FOR_OPERATION"] = "NOT_FOR_OPERATION"
     request_id: str
     decision_date: date
     planning_end_date: date
@@ -504,6 +510,7 @@ class FinalDecisionPackage(StrictDecisionContract):
     recommended_strategy: StrategyName | None = None
     recommended_plan_summary: CandidateSummary | None = None
     immediate_orders: list[OrderExplanation]
+    scheduled_orders: list[OrderExplanation] = Field(default_factory=list)
     conditional_recourse: list[OrderExplanation]
     strategy_comparison: list[CandidateSummary]
     forecast_explanations: list[ForecastExplanation]
@@ -533,10 +540,17 @@ class FinalDecisionPackage(StrictDecisionContract):
             raise ValueError("Final package requires exactly one M5 recommendation evidence item.")
         if recommendation_items[0].payload.get("recommended_strategy") != self.recommended_strategy:
             raise ValueError("M6 recommendation does not match M5 evidence.")
+        authority = recommendation_items[0].payload
+        if "technical_outcome" in authority and (
+            authority["technical_outcome"] != self.technical_outcome
+            or authority["technical_feasible"] != self.technical_feasible
+        ):
+            raise ValueError("M6_TECHNICAL_STATUS_AUTHORITY_MISMATCH")
         if self.recommended_strategy is None:
             if (
                 self.recommended_plan_summary is not None
                 or self.immediate_orders
+                or self.scheduled_orders
                 or self.conditional_recourse
             ):
                 raise ValueError("No-valid-plan package cannot contain a recommendation.")
@@ -553,8 +567,10 @@ class FinalDecisionPackage(StrictDecisionContract):
                 order.decision_stage != "scenario_recourse" for order in self.conditional_recourse
             ):
                 raise ValueError("Conditional recourse must contain scenario decisions only.")
-            if self.immediate_orders != self.recommended_plan_summary.first_stage_orders:
-                raise ValueError("Immediate orders must exactly match the M5 first-stage plan.")
+            expected_immediate = [o for o in self.recommended_plan_summary.first_stage_orders if o.order_date <= self.decision_date]
+            expected_scheduled = [o for o in self.recommended_plan_summary.first_stage_orders if o.order_date > self.decision_date]
+            if self.immediate_orders != expected_immediate or self.scheduled_orders != expected_scheduled:
+                raise ValueError("Immediate/scheduled orders must partition the exact M5 first-stage plan by order date.")
             if self.conditional_recourse != self.recommended_plan_summary.scenario_recourse_orders:
                 raise ValueError("Conditional recourse must exactly match the M5 candidate.")
         if self.narrative_summary is not None:

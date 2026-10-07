@@ -1,0 +1,42 @@
+{
+  "model_version": "m1-m2-research-res_07-seed42",
+  "target": "seasonal_residual_signed",
+  "target_strategy": "seasonal_residual_signed",
+  "baseline_anchor_semantics": "seasonal_naive_available_at_origin_with_causal_repository_fallbacks",
+  "residual_sign_policy": "signed_until_added_to_anchor_then_quantity_clipped_nonnegative",
+  "residual_blend_lambda": 1.0,
+  "quantile_repair_policy": "sort_triple",
+  "point_corrector_method": "horizon_shrunk_median_residual",
+  "calibration_target_semantics": "observed_sales_non_stockout",
+  "training_label_cutoff": "2026-06-16",
+  "point_fit_label_cutoff": "2026-06-30",
+  "calibration_label_cutoff": "2026-07-15",
+  "test_label_cutoff": "2026-08-12",
+  "actual_availability_convention": {
+    "name": "inclusive_end_of_day_next_run",
+    "actual_known_at": "The observed sales label for date d is available after close of business on d and before the next forecast run; an EOD origin on d may use it only for a subsequently fitted artifact.",
+    "vintage_evidence": "simulated historical availability; no operational publication timestamp exists in the demo bundle",
+    "weather": "excluded unless forecast vintage issued_at and available_at are both <= origin",
+    "promotion": "not a model feature",
+    "holiday_and_store_closure": "known-ahead calendar fields"
+  },
+  "simulated_available_at": "2026-07-15",
+  "artifact_fitted_at": "2026-10-04T06:47:50.660242+00:00",
+  "created_at": "2026-10-04T06:47:50.660260+00:00",
+  "published_at": null,
+  "promotion_status": "trained_candidate",
+  "production_available_at": null,
+  "protocol_sha256": "1faf8c9d18af3e80b303d4896cb635b521944ad3dedbfee6c05e4612893a16a4",
+  "selection_manifest_sha256": "6a11d8260af3125f9cd9d32c6fa7833f02e688ebde15af6938dba6592b6a4863",
+  "runtime_versions": {
+    "python_version": "3.14.4",
+    "package_version": null,
+    "lightgbm_version": "4.7.0",
+    "pandas_version": "3.0.6",
+    "numpy_version": "2.5.3",
+    "scikit_learn_version": "1.9.1",
+    "statsmodels_version": "0.15.0"
+  },
+  "holdout_status": "EXPLORATORY_OLD_HOLDOUT_ALREADY_EXPOSED",
+  "unseen_evidence": "UNSEEN_DATA_UNAVAILABLE"
+}

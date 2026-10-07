@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 from typing import Any
+import math
 
 from shelfcash_forecast.inventory.contracts import InventorySimulationPackage
 from shelfcash_forecast.optimization.constraints import validate_plan_constraints
@@ -303,6 +304,64 @@ def _model_mismatch(
 
 # → fail.
 
+def _lot_model_mismatch(plan, physics, request, profile):
+    """Compare solver states with exact states on the SAME worlds, never the superset."""
+    predictions = plan.provenance.get("predicted_daily_ledgers", {})
+    ids = set(plan.provenance.get("physics_scenario_ids", []))
+    if plan.solver_status != "OPTIMAL":
+        return False, {"evaluated": False, "reason": "NO_OPTIMAL_MODEL_STATES"}
+    if physics is None or {s.scenario_id for s in physics.results} != ids or not ids <= set(predictions):
+        return True, {"evaluated": False, "reason": "PHYSICS_SCOPE_MISSING"}
+    fields = {"beginning":"beginning_quantity", "inbound":"inbound_quantity", "expired":"expired_quantity",
+              "ending":"ending_quantity", "maximum":"maximum_quantity", "shortage":"shortage_quantity"}
+    gaps=[];maximum=0.0
+    for result in physics.results:
+        traced = {}
+        for trace in result.consumption_traces:
+            key=(trace.store_id,trace.ingredient_id,str(trace.simulation_date),trace.unit,trace.lot_id)
+            traced[key]=traced.get(key,0)+trace.quantity
+        actual={(l.store_id,l.ingredient_id,str(l.simulation_date),l.unit):l for l in result.daily_ledgers}
+        predicted={(l["store_id"],l["ingredient_id"],l["date"],l["unit"]):l for l in predictions[result.scenario_id]}
+        if set(actual)!=set(predicted):
+            gaps.append({"scenario_id":result.scenario_id,"reason":"LEDGER_IDENTITY_MISMATCH"});continue
+        for key,row in predicted.items():
+            if request.inventory_policy.trace_retention == "full":
+                expected_allocations={(*key,lot):quantity for lot,quantity in row["consumption"].items()
+                                      if quantity > request.inventory_policy.accounting_tolerance}
+                actual_allocations={k:q for k,q in traced.items() if k[:4]==key}
+                if set(expected_allocations)!=set(actual_allocations) or any(
+                    abs(q-actual_allocations.get(k,0))>request.inventory_policy.accounting_tolerance
+                    for k,q in expected_allocations.items()):
+                    gaps.append({"scenario_id":result.scenario_id,"key":key,"reason":"FEFO_ALLOCATION_MISMATCH"})
+            for p,a in fields.items():
+                gap=abs(row[p]-getattr(actual[key],a));maximum=max(maximum,gap)
+                if gap>request.inventory_policy.accounting_tolerance:
+                    gaps.append({"scenario_id":result.scenario_id,"key":key,"field":p,"absolute_gap":gap})
+    # Preserve the original risk/fill model-gap guards on the comparable physics
+    # distribution. A full-pool sampling shift is evaluated separately.
+    metrics_gap = {}
+    if physics.risk_metrics is not None:
+        weights={r.scenario_id:r.probability_weight for r in physics.results}
+        fill_by_key={};stockout=0
+        for sid in ids:
+            totals={};shortages={}
+            for row in predictions[sid]:
+                key=f"{row['store_id']}|{row['ingredient_id']}|{row['unit']}"
+                totals[key]=totals.get(key,0)+row['demand']
+                shortages[key]=shortages.get(key,0)+row['shortage']
+            for key,total in totals.items():
+                fill_by_key[key]=fill_by_key.get(key,0)+weights[sid]*(1-shortages[key]/total if total else 1)
+            if any(q>1e-8 for q in shortages.values()):stockout+=weights[sid]
+        comparable=ProcurementPlan.model_validate({**plan.model_dump(),"provenance":{**plan.provenance,
+            "predicted_expected_fill_rate":sum(fill_by_key.values())/len(fill_by_key) if fill_by_key else 1,
+            "predicted_expected_fill_rate_by_key":fill_by_key,"predicted_stockout_probability":stockout}})
+        risk_mismatch,metrics_gap=_model_mismatch(comparable,physics,profile)
+        if risk_mismatch:gaps.append({"reason":"SAME_SCOPE_RISK_MODEL_GAP"})
+    return bool(gaps), {"evaluated":True,"risk_model_gap":metrics_gap,"same_worlds":sorted(ids),"maximum_quantity_gap":maximum,
+                        "accounting_tolerance":request.inventory_policy.accounting_tolerance,"violations":gaps[:100],
+                        "violation_count":len(gaps),"scope":"solver_physics_worlds_not_full_pool_sampling_shift"}
+
+
 def critique_procurement_plan(
     plan: ProcurementPlan,
     request: OptimizationRequest,
@@ -311,21 +370,29 @@ def critique_procurement_plan(
     *,
     stress_simulation: InventorySimulationPackage | None = None,
     simulation_error: str | None = None,
+    physics_simulation: InventorySimulationPackage | None = None,
 ) -> CriticResult:
     violations, checks = validate_plan_constraints(
         plan,
         request.supplier_offers,
         request.supplier_constraints,
         budget=request.budget,
+        unit_conversions=request.unit_conversions,
     )
     warnings = list(plan.warnings)
     details: dict[str, Any] = {}
     if plan.solver_status != "OPTIMAL":
         violations.append(f"SOLVER_STATUS:{plan.solver_status}")
+    cost_keys = {(a.store_id, a.ingredient_id) for a in request.cost_assumptions}
+    demand_keys = {(line.store_id, line.ingredient_id) for s in request.demand_scenarios for line in s.lines}
+    known_pending = {"DEMO_CONSEQUENCE_COSTS_NOT_APPROVED"} if (
+        request.environment in {"DEMO", "SYNTHETIC"} and demand_keys <= cost_keys
+    ) else set()
     if request.unknown_constraints:
         violations.extend(
-            f"UNKNOWN_CONSTRAINT:{name}" for name in request.unknown_constraints
+            f"UNKNOWN_CONSTRAINT:{name}" for name in request.unknown_constraints if name not in known_pending
         )
+    details["business_pending"] = sorted(set(request.business_issues) | (set(request.unknown_constraints) & known_pending))
     selected = [*plan.orders]
     for lines in plan.scenario_recourse_orders.values():
         selected.extend(lines)
@@ -349,15 +416,33 @@ def critique_procurement_plan(
             }
         )
     else:
+        from shelfcash_forecast.optimization.business_rules import evaluate_rules
+        rules=evaluate_rules(request.normalized_rules,simulation,plan.orders)
+        details['business_rule_evaluation']=rules
+        checks['profile_rules']=all(r['status']!='FAIL' for r in rules)
+        violations.extend('BUSINESS_RULE:'+r['rule_id'] for r in rules if r['status']=='FAIL')
+        checks['profile_binding']=plan.provenance.get('planning_binding',{})==request.planning_binding
+        if not checks['profile_binding']:violations.append('STALE_PLAN_PROFILE_BINDING')
+        expected = {s.scenario_id: s.probability_weight for s in (request.evaluation_scenarios or request.demand_scenarios)}
+        actual = {s.scenario_id: s.probability_weight for s in simulation.results}
+        coverage_valid = set(expected) == set(actual) and all(
+            (w is None and actual[sid] is None) or
+            (w is not None and actual[sid] is not None and math.isclose(w, actual[sid], abs_tol=1e-9, rel_tol=1e-9))
+            for sid, w in expected.items())
+        checks["evaluation_coverage"] = coverage_valid
+        if not coverage_valid:
+            violations.append("EVALUATION_SCENARIO_COVERAGE_MISMATCH")
         accounting_valid = all(result.accounting_valid for result in simulation.results)
         checks["m4_accounting"] = accounting_valid
         if not accounting_valid:
             violations.append("M4_ACCOUNTING_INVALID")
 
-        capacity_evaluated = all(
-            result.provenance.get("capacity_evaluated", False)
-            for result in simulation.results
-        )
+        required_caps = {(a.store_id,a.ingredient_id) for a in request.cost_assumptions if a.capacity_quantity is not None}
+        capacity_evaluated = all(required_caps <= {(k.store_id,k.ingredient_id) for k in result.summary.by_key
+                                                  if k.capacity_violation_quantity is not None} for result in simulation.results)
+        details["capacity_coverage"] = {"applicable_keys": sorted(required_caps),
+                                        "rule_mapping": request.rule_coverage,
+                                        "all_applicable_evaluated": capacity_evaluated}
         capacity_valid = all(
             (item.capacity_violation_quantity or 0) <= 1e-9
             for result in simulation.results
@@ -453,7 +538,10 @@ def critique_procurement_plan(
         if not risk_valid:
             violations.append("RISK_CONSTRAINT_VIOLATION")
 
-        mismatch, mismatch_details = _model_mismatch(plan, simulation, profile)
+        if plan.provenance.get("formulation") == "sequential_fefo_greedy_lost_sales_v2":
+            mismatch, mismatch_details = _lot_model_mismatch(plan, physics_simulation, request, profile)
+        else:
+            mismatch, mismatch_details = _model_mismatch(plan, simulation, profile)
 # Critic còn hỏi:
 
 # “Model approximation trong stochastic có đang quá lạc quan so với exact M4 không?”

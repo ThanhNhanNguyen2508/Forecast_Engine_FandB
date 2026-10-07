@@ -7,3 +7,14 @@ __pycache__/
 build/
 dist/
 .coverage
+.venv/
+.venv-preprocess/
+.env
+.env.*
+!.env.preprocess.example
+outputs/
+.runtime/
+codex_tests/configs/resolved_runs/
+codex_tests/runs/
+*.log
+*.tmp

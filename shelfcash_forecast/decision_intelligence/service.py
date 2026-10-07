@@ -49,7 +49,9 @@ def _build_from_input(inputs: DecisionIntelligenceInput) -> FinalDecisionPackage
         (candidate for candidate in candidates if candidate.strategy == recommended),
         None,
     )
-    immediate = recommended_summary.first_stage_orders if recommended_summary else []
+    committed = recommended_summary.first_stage_orders if recommended_summary else []
+    immediate = [order for order in committed if order.order_date <= inputs.optimization_request.decision_date]
+    scheduled = [order for order in committed if order.order_date > inputs.optimization_request.decision_date]
     recourse = recommended_summary.scenario_recourse_orders if recommended_summary else []
     warnings = sorted(
         set(inputs.optimization_result.warnings)
@@ -86,6 +88,8 @@ def _build_from_input(inputs: DecisionIntelligenceInput) -> FinalDecisionPackage
         supplied_rule.strip() if isinstance(supplied_rule, str) and supplied_rule.strip() else None
     )
     package = FinalDecisionPackage(
+        technical_outcome=inputs.optimization_result.technical_outcome,
+        technical_feasible=inputs.optimization_result.technical_feasible,
         request_id=inputs.optimization_request.request_id,
         decision_date=inputs.optimization_request.decision_date,
         planning_end_date=inputs.optimization_request.planning_end_date,
@@ -93,6 +97,7 @@ def _build_from_input(inputs: DecisionIntelligenceInput) -> FinalDecisionPackage
         recommended_strategy=recommended,
         recommended_plan_summary=recommended_summary,
         immediate_orders=immediate,
+        scheduled_orders=scheduled,
         conditional_recourse=recourse,
         strategy_comparison=candidates,
         forecast_explanations=forecasts,
@@ -118,6 +123,17 @@ def _build_from_input(inputs: DecisionIntelligenceInput) -> FinalDecisionPackage
             ),
             "read_only": True,
             "optimizer_called": False,
+            "technical_outcome": inputs.optimization_result.technical_outcome,
+            "technical_feasible": inputs.optimization_result.technical_feasible,
+            "business_ready": inputs.optimization_result.business_ready,
+            "execution_authorized": False,
+            "operational_status": inputs.optimization_result.operational_status,
+            "environment": inputs.optimization_request.environment,
+            'planning_mode':inputs.optimization_request.planning_mode,
+            'planning_binding':inputs.optimization_request.planning_binding,
+            'profile_rule_coverage':inputs.optimization_request.rule_coverage,
+            'customer_conditions':inputs.optimization_request.planning_binding.get('assumptions',[]),
+            "diagnostics": [d.model_dump(mode="json") for d in inputs.optimization_result.diagnostics],
             "upstream_artifacts": {
                 "forecast_package": inputs.forecast_package is not None,
                 "ingredient_demand_package": inputs.ingredient_demand_package is not None,

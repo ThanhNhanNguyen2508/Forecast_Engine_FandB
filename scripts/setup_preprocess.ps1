@@ -7,10 +7,14 @@ param(
 $ErrorActionPreference = "Stop"
 if (-not $EngineRoot) {
     $SourceRoot = Split-Path -Parent $PSScriptRoot
-    $EngineRoot = Split-Path -Parent $SourceRoot
+    $EngineRoot = $SourceRoot
+    if (-not (Test-Path -LiteralPath (Join-Path $SourceRoot 'shelfcash.config.json'))) {
+        $EngineRoot = Split-Path -Parent $SourceRoot
+    }
 }
 $EngineRoot = [System.IO.Path]::GetFullPath($EngineRoot)
 $SourceRoot = Join-Path $EngineRoot "source_code"
+if (Test-Path -LiteralPath (Join-Path $EngineRoot 'pyproject.toml')) { $SourceRoot = $EngineRoot }
 $Venv = Join-Path $EngineRoot ".venv-preprocess"
 $Python = Join-Path $Venv "Scripts\python.exe"
 

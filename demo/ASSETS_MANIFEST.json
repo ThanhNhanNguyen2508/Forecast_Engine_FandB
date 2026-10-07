@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "description": "Byte-identical DEMO inputs and fixed, unpromoted research artifacts; no training performed",
+  "snapshot": "2026-08-12 EOD",
+  "horizon": "2026-08-13 through2026-08-19",
+  "files": [
+    {
+      "path": "demo/input/01_POS_Export_DEMO_to_2026-08-12.xlsx",
+      "original": "codex_tests/Demo data/01_POS_Export_DEMO_to_2026-08-12.xlsx",
+      "size": 42759,
+      "sha256": "1f9da7242a748f30b7068e0558cc6466286cbc7546fa8355ead9f0efba8e9712"
+    },
+    {
+      "path": "demo/input/02_TieuThu_NguyenLieu_DEMO_to_2026-08-12.xlsx",
+      "original": "codex_tests/Demo data/02_TieuThu_NguyenLieu_DEMO_to_2026-08-12.xlsx",
+      "size": 23699,
+      "sha256": "7d5cb77e0157b1b2b68e818bda9c49f2899744702015e6a6c48b3877b2f5f2d7"
+    },
+    {
+      "path": "demo/input/03_Kho_NhapHang_NCC_DEMO_snapshot_2026-08-12_WITH_RECEIVED_DATE_SHELF_LIFE.xlsx",
+      "original": "codex_tests/Demo data/03_Kho_NhapHang_NCC_DEMO_snapshot_2026-08-12_WITH_RECEIVED_DATE_SHELF_LIFE.xlsx",
+      "size": 15283,
+      "sha256": "16646f2a1adbb1617c0c993416cf8b58d15cf117b600dfb196862fbc120e0d4e"
+    },
+    {
+      "path": "demo/input/04_Recipes_BusinessRules_DEMO_2026-08-19_OPERATING_RULES.xlsx",
+      "original": "codex_tests/Demo data/04_Recipes_BusinessRules_DEMO_2026-08-19_OPERATING_RULES.xlsx",
+      "size": 14104,
+      "sha256": "a4370e477ffc4cfe843cdf7d46c2bf53a1a86ad84f4f1695496a2f8e2332023e"
+    },
+    {
+      "path": "demo/input/05_Context_Calendar_DEMO_2026-01-01_to_2026-08-26.xlsx",
+      "original": "codex_tests/Demo data/05_Context_Calendar_DEMO_2026-01-01_to_2026-08-26.xlsx",
+      "size": 14276,
+      "sha256": "474909150a0c656f3b24c8b2f40f185b21d04891695cc1c792ea25e03b069b7a"
+    },
+    {
+      "path": "demo/input/06_Menu_DEMO.xlsx",
+      "original": "codex_tests/Demo data/06_Menu_DEMO.xlsx",
+      "size": 14885,
+      "sha256": "6864dc86b9cbcca1b89ba875648be3bd31a86a9497c79620b2adc3cff872ba98"
+    },
+    {
+      "path": "demo/artifacts/artifact_checksums.json",
+      "original": "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts/artifact_checksums.json",
+      "size": 2021,
+      "sha256": "f32c03f095fa3f6140437cec6670a7362256b729b283cb14dc3d1ddb7f424a7d"
+    },
+    {
+      "path": "demo/artifacts/baseline_metrics.json",
+      "original": "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts/baseline_metrics.json",
+      "size": 5819,
+      "sha256": "ad0e7c19fad8f5dbb53eaf8a5a79fa5799efa83b52b2f946a6bead50bffa6da0"
+    },
+    {
+      "path": "demo/artifacts/calibration_metrics.json",
+      "original": "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts/calibration_metrics.json",
+      "size": 17476,
+      "sha256": "a7f224f653e5d9c05790a01673821e137a15dd3f086ac2152268dc0d118a23be"
+    },
+    {
+      "path": "demo/artifacts/calibration_predictions.parquet",
+      "original": "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts/calibration_predictions.parquet",
+      "size": 128722,
+      "sha256": "27f51bb0ebb389cfb53e8ebc469ab2b7bbb8dbd021bb0aa95ebeba45ee6814d5"
+    },
+    {
+      "path": "demo/artifacts/calibrator.json",
+      "original": "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts/calibrator.json",
+      "size": 1641,
+      "sha256": "8c7e10e03d3f4c8e964b001c9150055a9bcafd8b254533ef22be434743c03958"
+    },
+    {
+      "path": "demo/artifacts/category_mappings.json",
+      "original": "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts/category_mappings.json",
+      "size": 140,
+      "sha256": "c7987481abec8f51818156a047a706a0a83e267fd350029deb62c2a4a7842571"
+    },
+    {
+      "path": "demo/artifacts/feature_schema.json",
+      "original": "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts/feature_schema.json",
+      "size": 1352,
+      "sha256": "7304c9cb12e6372743353a18816f7f581c68c10ffd3bf8b673f02d3d3c4ead0d"
+    },
+    {
+      "path": "demo/artifacts/model_metadata.json",
+      "original": "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts/model_metadata.json",
+      "size": 2177,
+      "sha256": "f9079493fd52b8678a4cecc566b128b0122d0c1e7581d27972d932f12e009e8d"
+    },
+    {
+      "path": "demo/artifacts/model_q25.txt",
+      "original": "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts/model_q25.txt",
+      "size": 193059,
+      "sha256": "45867558571f92d0cc13e17c33ea84bfeb14193ee7776e7b5d3379441928dc20"
+    },
+    {
+      "path": "demo/artifacts/model_q50.txt",
+      "original": "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts/model_q50.txt",
+      "size": 128331,
+      "sha256": "1552b2b02bf1455d0937b81f217eb4d3e0d262006f9a19eb2608dd5037149402"
+    },
+    {
+      "path": "demo/artifacts/model_q75.txt",
+      "original": "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts/model_q75.txt",
+      "size": 114512,
+      "sha256": "73add9795e37b47d5890dcd314bbcbb5614c8fd7c6903c7b2f0760d631d88588"
+    },
+    {
+      "path": "demo/artifacts/point_corrector.json",
+      "original": "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts/point_corrector.json",
+      "size": 2130,
+      "sha256": "75bf5d03eac703755083a1b812b5c9886fce60bf019b6cbf62a30c022f7ce35e"
+    },
+    {
+      "path": "demo/artifacts/point_fit_predictions.parquet",
+      "original": "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts/point_fit_predictions.parquet",
+      "size": 90055,
+      "sha256": "74972aa7081b0f6c66d4d752846945a90403b18c34dd6efe5416cacfd8b7ecb2"
+    },
+    {
+      "path": "demo/artifacts/preprocessing_config.json",
+      "original": "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts/preprocessing_config.json",
+      "size": 1337,
+      "sha256": "2da8d42f7bbb2cf4ac575ed257d533e5bd56b17abd26d5e0bed7540ed07ddaa5"
+    },
+    {
+      "path": "demo/artifacts/quality_report.json",
+      "original": "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts/quality_report.json",
+      "size": 355,
+      "sha256": "6028917933be8d3b6f1191eeea2c43b00a1a74e9fe253f5bca8167f43696177e"
+    },
+    {
+      "path": "demo/artifacts/test_metrics.json",
+      "original": "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts/test_metrics.json",
+      "size": 1009,
+      "sha256": "645e37a77861b74f0ec8a520b1cb098160c37c09c873b430314cc98c608206dc"
+    },
+    {
+      "path": "demo/artifacts/test_predictions.parquet",
+      "original": "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts/test_predictions.parquet",
+      "size": 288149,
+      "sha256": "b92ce5830aafec96349eeb1f4aac5bcb44701dbcb6d748206b4fcb20af2efc0a"
+    },
+    {
+      "path": "demo/artifacts/training_manifest.json",
+      "original": "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts/training_manifest.json",
+      "size": 456,
+      "sha256": "9844d692585b3f4c6c3c4efe265beea75794a99e5642dd87eac59738b73ff4e6"
+    },
+    {
+      "path": "demo/artifacts/walk_forward_metrics.json",
+      "original": "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts/walk_forward_metrics.json",
+      "size": 1591,
+      "sha256": "d79e69fdeb0fc5ddd4821fc6c8f4fc83b8c8733a75b4057eac25a127bc8c6fed"
+    },
+    {
+      "path": "demo/artifacts/walk_forward_predictions.parquet",
+      "original": "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts/walk_forward_predictions.parquet",
+      "size": 205959,
+      "sha256": "e96a1369800312f2b68527275403b8a699bd9a8adba037a7b59a1f135a41b10b"
+    },
+    {
+      "path": "demo/artifacts/walk_forward_residuals.parquet",
+      "original": "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts/walk_forward_residuals.parquet",
+      "size": 48200,
+      "sha256": "c9b6445aa7324375aaf896adaec892c51d4b36fb6fe83036a65f67ddff2eeb6d"
+    }
+  ]
+}

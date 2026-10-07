@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "shelfcash-engine"
 version = "0.1.0"
 description = "ShelfCash forecast engine and auditable multi-format preprocessing"
-readme = "README_PREPROCESS_VI.md"
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "numpy>=1.26",
@@ -23,6 +23,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+demo = ["pyarrow>=17"]
 forecast = ["lightgbm>=4.5", "scikit-learn>=1.5", "scipy>=1.13", "statsmodels>=0.14"]
 parquet = ["pyarrow>=17"]
 pdf = ["pdfplumber>=0.11"]
@@ -39,6 +40,7 @@ all = [
 shelfcash-preprocess = "shelfcash_preprocess.cli:app"
 shelfcash-forecast = "shelfcash_forecast.cli:app"
 shelfcash-pipeline = "shelfcash_pipeline.run:main"
+shelfcash-run = "shelfcash_pipeline.config_runner:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -20,6 +20,7 @@ from datetime import date, timedelta
 import numpy as np
 
 from shelfcash_forecast.bom.units import UnitConverter, normalize_unit
+from shelfcash_forecast.optimization.chronology import offer_arrival
 from shelfcash_forecast.exceptions import BOMError, OptimizationError
 from shelfcash_forecast.inventory.adapters import normalize_cost_assumptions
 from shelfcash_forecast.inventory.contracts import ConsequenceCostAssumption
@@ -85,6 +86,11 @@ def _date_range(start: date, end: date) -> list[date]:
 
 
 def build_problem_data(request: OptimizationRequest) -> OptimizationProblemData:
+    """Deprecated aggregate diagnostic representation; not a procurement physics model.
+
+    Live deterministic/stochastic solvers share lot_milp.solve_lot_procurement.
+    This compatibility reader cannot certify expiry, FEFO, peak capacity or service.
+    """
 # Nó là hàm preprocessing/compiler của M5, biến OptimizationRequest dạng business/raw data 
 # thành OptimizationProblemData sạch, đồng nhất và sẵn sàng cho MILP solver.
     if not request.demand_scenarios:
@@ -153,7 +159,7 @@ def build_problem_data(request: OptimizationRequest) -> OptimizationProblemData:
     eligible: list[EligibleOffer] = []
     for offer in request.supplier_offers:
         key = (offer.store_id, offer.ingredient_id)
-        arrival = offer.order_date + timedelta(days=offer.lead_time_days)
+        arrival = offer_arrival(offer)
         if key not in target_units:
             continue
         if (

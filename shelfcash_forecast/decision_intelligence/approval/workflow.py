@@ -82,7 +82,7 @@ def _bound_orders(
 ) -> list[ApprovalOrderLine]:
     offers = {offer.offer_id: offer for offer in request.supplier_offers}
     rows: list[ApprovalOrderLine] = []
-    for order in decision.immediate_orders:
+    for order in [*decision.immediate_orders, *decision.scheduled_orders]:
         offer = offers.get(order.offer_id)
         if offer is None or (
             offer.supplier_id,

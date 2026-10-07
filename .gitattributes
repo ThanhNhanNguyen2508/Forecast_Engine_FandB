@@ -1,0 +1,5 @@
+* text=auto eol=lf
+*.ps1 text eol=crlf
+# Model checksum manifests verify exact bytes after Git checkout.
+demo/artifacts/** -text
+demo/input/** -text

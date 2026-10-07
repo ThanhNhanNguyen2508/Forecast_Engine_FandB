@@ -40,6 +40,7 @@ import numpy as np
 
 from shelfcash_forecast.inventory.contracts import PlannedInboundDelivery
 from shelfcash_forecast.optimization.contracts import ProcurementDecisionLine
+from shelfcash_forecast.optimization.chronology import expiry_date, planned_lot_id
 from shelfcash_forecast.scenario.lead_time import LeadTimeModel
 from shelfcash_forecast.scenario.shelf_life import ShelfLifeModel
 
@@ -55,11 +56,7 @@ def _inclusive_expiry_date(
     default policy permits consumption through that expiry date.
     """
 
-    return (
-        None
-        if shelf_life_days is None
-        else arrival_date + timedelta(days=shelf_life_days)
-    )
+    return expiry_date(arrival_date, shelf_life_days)
 
 
 def decisions_to_planned_inbound(
@@ -75,7 +72,7 @@ def decisions_to_planned_inbound(
         deliveries.append(
             PlannedInboundDelivery(
                 delivery_id=f"{plan_id}{suffix}-delivery-{index:04d}",
-                lot_id=f"{plan_id}{suffix}-lot-{index:04d}",
+                lot_id=planned_lot_id(plan_id, line.offer_id, scenario_id),
                 purchase_order_id=f"{plan_id}{suffix}-po-{index:04d}",
                 source_plan_id=plan_id,
                 supplier_id=line.supplier_id,

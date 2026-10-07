@@ -1,145 +1,114 @@
-#                    optimizer.py
-#                         │
-#        ┌────────────────┼─────────────────┐
-#        ▼                ▼                 ▼
-#      LEAN            BALANCED         PROTECTED
-#        │                │                 │
-#        ▼                ▼                 ▼
-# stochastic/det    stochastic/det    stochastic/det
-#        │                │                 │
-#        ▼                ▼                 ▼
-# candidate plan     candidate plan     candidate plan
-#        │                │                 │
-#        ▼                ▼                 ▼
-# resimulation       resimulation       resimulation
-#        │                │                 │
-#        ▼                ▼                 ▼
-# critic             critic             critic
-# PASS/FAIL          PASS/FAIL          PASS/FAIL
-#        └────────────────┼─────────────────┘
-#                         ▼
-#                  recommendation
+"""Bounded candidate generation; independent exact critic is the only acceptance gate."""
 from __future__ import annotations
-
+import time
+import logging
 from shelfcash_forecast.exceptions import OptimizationNotAvailableError
-from shelfcash_forecast.optimization.contracts import (
-    OptimizationRequest,
-    OptimizationResult,
-    StrategyProfile,
-)
-from shelfcash_forecast.optimization.deterministic import (
-    solve_deterministic_procurement,
-)
-from shelfcash_forecast.optimization.resimulation import evaluate_candidate_plan
+from shelfcash_forecast.optimization.contracts import OptimizationRequest, OptimizationResult, CandidateEvaluation, ProcurementDiagnostic
+from shelfcash_forecast.optimization.deterministic import solve_deterministic_procurement
 from shelfcash_forecast.optimization.stochastic import solve_stochastic_procurement
+from shelfcash_forecast.optimization.resimulation import evaluate_candidate_plan
 from shelfcash_forecast.optimization.strategies import default_strategy_profiles
-from shelfcash_forecast.scenario.lead_time import LeadTimeModel
-from shelfcash_forecast.scenario.shelf_life import ShelfLifeModel
+from shelfcash_forecast.optimization.preflight import preflight
+from shelfcash_forecast.optimization.planning_service import content_hash
 
 
-def _profiles(request: OptimizationRequest) -> list[StrategyProfile]:
-    defaults = {profile.name: profile for profile in default_strategy_profiles()}
-    defaults.update({profile.name: profile for profile in request.strategy_profiles})
-    return [defaults[name] for name in ("LEAN", "BALANCED", "PROTECTED")]
+def _profiles(request):
+    defaults = {p.name:p for p in default_strategy_profiles()}
+    defaults.update({p.name:p for p in request.strategy_profiles})
+    return [defaults[name] for name in ("LEAN","BALANCED","PROTECTED")]
 
 
-def optimize_procurement(
-    request: OptimizationRequest,
-    *,
-    lead_time_model: LeadTimeModel | None = None,
-    shelf_life_model: ShelfLifeModel | None = None,
-) -> OptimizationResult:
-    """Generate candidates with OR and accept them only after exact M4 evaluation."""
-
-    evaluations = {}
-    warnings: set[str] = set()
-    has_probabilities = bool(request.demand_scenarios) and all(
-        scenario.probability_weight is not None
-        for scenario in request.demand_scenarios
-    )
-    use_stochastic = (
-        request.stochastic and has_probabilities and len(request.demand_scenarios) > 1
-    )
-    requested_mode = "stochastic" if request.stochastic else "deterministic"
-    initial_fallback_reason = None
-    if request.stochastic and not use_stochastic:
-        initial_fallback_reason = "STOCHASTIC_NOT_AVAILABLE_WITH_UNWEIGHTED_OR_SINGLE_SCENARIO"
+def optimize_procurement(request, *, lead_time_model=None, shelf_life_model=None):
+    started=time.monotonic(); profiles=_profiles(request)
+    weighted=bool(request.demand_scenarios) and all(s.probability_weight is not None for s in request.demand_scenarios)
+    stochastic=request.stochastic and weighted and len(request.demand_scenarios)>1
+    fallback=None
+    if request.stochastic and not stochastic:
+        fallback="STOCHASTIC_NOT_AVAILABLE_WITH_UNWEIGHTED_OR_SINGLE_SCENARIO"
         if not request.allow_mode_fallback:
-            raise OptimizationNotAvailableError(
-                "Stochastic mode requires at least two fully weighted scenarios.",
-                code=initial_fallback_reason,
-            )
-        warnings.add(initial_fallback_reason)
-    candidate_modes = {}
-    for profile in _profiles(request):
-        actual_mode = "stochastic" if use_stochastic else "deterministic"
-        fallback_reason = initial_fallback_reason
-        try:
-            plan = (
-                solve_stochastic_procurement(request, profile)
-                if use_stochastic
-                else solve_deterministic_procurement(request, profile)
-            )
-        except OptimizationNotAvailableError as exc:
-            if not request.allow_mode_fallback:
-                raise
-            warnings.add(f"{exc.code}: {exc}")
-            plan = solve_deterministic_procurement(request, profile)
-            actual_mode = "deterministic"
-            fallback_reason = exc.code
-        evaluation = evaluate_candidate_plan(
-            plan,
-            request,
-            profile,
-            lead_time_model=lead_time_model,
-            shelf_life_model=shelf_life_model,
-        )
-        evaluations[profile.name] = evaluation.model_copy(update={
-            "requested_mode": requested_mode,
-            "actual_mode": actual_mode,
-            "fallback_reason": fallback_reason,
-        })
-        candidate_modes[profile.name] = {
-            "requested_mode": requested_mode,
-            "actual_mode": actual_mode,
-            "fallback_reason": fallback_reason,
-            "solver_status": plan.solver_status,
-        }
-
-    recommended = next(
-        (
-            name
-            for name in ("BALANCED", "PROTECTED", "LEAN")
-            if evaluations[name].critic.passed
-        ),
-        None,
-    )
-    return OptimizationResult(
-        request_id=request.request_id,
-        evaluations=evaluations,
-        recommended_strategy=recommended,
-        status=(
-            "COMPLETED" if recommended is not None else "NO_VALID_PROCUREMENT_PLAN"
-        ),
-        provenance={
-            "candidate_engine": "stochastic_saa" if use_stochastic else "deterministic_mip",
-            "requested_mode": requested_mode,
-            "actual_mode": (
-                next(iter({item["actual_mode"] for item in candidate_modes.values()}))
-                if len({item["actual_mode"] for item in candidate_modes.values()}) == 1
-                else "mixed"
-            ),
-            "candidate_modes": candidate_modes,
-            "validation_engine": "m4_lot_level_fefo_v1",
-            "recommendation_rule": "BALANCED_then_PROTECTED_then_LEAN_if_valid",
-            "no_valid_plan_reason": (
-                None if recommended is not None else "NO_VALID_PROCUREMENT_PLAN"
-            ),
-            "supply_uncertainty": (
-                "externally_realized"
-                if lead_time_model is not None
-                else "supplier_offer_fixed_lead_time"
-            ),
-        },
-        warnings=sorted(warnings),
-    )
+            raise OptimizationNotAvailableError("Stochastic mode requires at least two fully weighted scenarios.",code=fallback)
+    actual_mode="stochastic" if stochastic else "deterministic"
+    pf=preflight(request,profiles)
+    if lead_time_model is not None or shelf_life_model is not None:
+        pf["status"]="BLOCKED_INPUT_SEMANTICS"
+        pf["diagnostics"].append(ProcurementDiagnostic(reason_code="EXTERNAL_SUPPLY_UNCERTAINTY_NOT_SUPPORTED",proof_status="BLOCKED"))
+    base_provenance={"candidate_engine":"lot_fefo_milp_v2","requested_mode":"stochastic" if request.stochastic else "deterministic",
+        "actual_mode":actual_mode,"validation_engine":"m4_lot_level_fefo_v1",
+        "recommendation_rule":"BALANCED_then_PROTECTED_then_LEAN_if_valid", "preflight":{k:v for k,v in pf.items() if k!="diagnostics"},
+        "proof_scope":pf["proof_scope"],
+        "request_hash":content_hash(request),"scenario_provenance":request.scenario_provenance,
+        "optimizer_called":False,"environment":request.environment,"business_pending":request.business_issues,
+        "execution_authorized":False,"business_ready":False}
+    if pf["status"] in {"BLOCKED_INPUT_SEMANTICS","PROVEN_INFEASIBLE"}:
+        return OptimizationResult(request_id=request.request_id,evaluations={},status="NO_VALID_PROCUREMENT_PLAN",
+            technical_outcome=pf["status"],technical_feasible=False if pf["status"]=="PROVEN_INFEASIBLE" else None,
+            diagnostics=pf["diagnostics"],provenance=base_provenance)
+    evaluations={};limited=False;candidate_modes={}
+    for profile in profiles:
+        current=request;attempts=[];fingerprints=set();evaluation=None
+        for attempt in range(request.limits.max_refinement_iterations+1):
+            remaining=request.limits.total_seconds-(time.monotonic()-started)
+            if remaining<=0:
+                limited=True;break
+            limits={**current.limits.model_dump(),"per_solve_seconds":min(current.limits.per_solve_seconds,remaining),"total_seconds":remaining}
+            current=OptimizationRequest.model_validate({**current.model_dump(),"limits":limits})
+            logging.getLogger(__name__).info('M5 %s %s attempt=%s worlds=%s solve',actual_mode,profile.name,attempt,len(current.demand_scenarios))
+            if current.candidate_generation=='DECOMPOSED_FIXED_CERTIFICATION':
+                from shelfcash_forecast.optimization.decomposition import solve_decomposed
+                plan=solve_decomposed(current,profile,stochastic=stochastic)
+            else:
+                plan=(solve_stochastic_procurement if stochastic else solve_deterministic_procurement)(current,profile)
+            base_provenance["optimizer_called"]=True
+            evaluation=evaluate_candidate_plan(plan,current,profile)
+            logging.getLogger(__name__).info('M5 %s %s attempt=%s solver=%s critic=%s violations=%s',actual_mode,profile.name,attempt,plan.solver_status,evaluation.critic.passed,evaluation.critic.hard_violations)
+            fingerprint=content_hash([o.model_dump(mode="json") for o in plan.orders])
+            record={"attempt":attempt,"request_hash":content_hash(current),"optimization_ids":[s.scenario_id for s in current.demand_scenarios],
+                    "optimization_weights":{s.scenario_id:s.probability_weight for s in current.demand_scenarios},
+                    "candidate_fingerprint":fingerprint,"plan":plan.model_dump(mode="json"),
+                    "physics_simulation":evaluation.physics_simulation.model_dump(mode="json") if evaluation.physics_simulation else None,
+                    "evaluation_simulation":evaluation.simulation.model_dump(mode="json") if evaluation.simulation else None,
+                    "critic":evaluation.critic.model_dump(mode="json"),"termination":None}
+            attempts.append(record)
+            if evaluation.critic.passed:
+                record["termination"]="ACCEPTED_BY_EXACT_CRITIC";break
+            if plan.solver_status!="OPTIMAL":
+                record["termination"]="SOLVER_"+plan.solver_status
+                limited |= plan.solver_status=="LIMIT_REACHED";break
+            if fingerprint in fingerprints:
+                record["termination"]="CYCLE_DETECTED";limited=True;break
+            fingerprints.add(fingerprint)
+            if attempt==request.limits.max_refinement_iterations:
+                record["termination"]="MAX_REFINEMENT_ITERATIONS";limited=True;break
+            if not request.evaluation_scenarios or evaluation.simulation is None:
+                record["termination"]="NO_SUPPORTED_REFINEMENT";break
+            if "CANDIDATE_MODEL_MISMATCH" in evaluation.critic.hard_violations:
+                record["termination"]="PHYSICS_MISMATCH_REQUIRES_MODEL_FIX";break
+            existing={s.scenario_id for s in current.demand_scenarios}
+            violating={r.scenario_id for r in evaluation.simulation.results if any(k.shortage_quantity>request.inventory_policy.accounting_tolerance for k in r.summary.by_key)}
+            added=sorted(violating-existing)
+            if not added:
+                record["termination"]="NO_NEW_VIOLATING_WORLDS";break
+            selected=[s for s in request.evaluation_scenarios if s.scenario_id in existing|set(added)]
+            mass=sum(s.probability_weight for s in selected)
+            if mass<=0:
+                record["termination"]="ZERO_SELECTED_PROBABILITY_MASS";break
+            worlds=[type(s).model_validate({**s.model_dump(),"probability_weight":s.probability_weight/mass}) for s in selected]
+            current=OptimizationRequest.model_validate({**request.model_dump(),"demand_scenarios":worlds})
+            record["added_scenarios"]=added;record["termination"]="ADD_EXISTING_VIOLATING_WORLDS"
+        if evaluation is not None:
+            evaluation=CandidateEvaluation.model_validate({**evaluation.model_dump(),"requested_mode":base_provenance["requested_mode"],
+                "actual_mode":actual_mode,"fallback_reason":fallback,"attempts":attempts})
+            evaluations[profile.name]=evaluation
+            candidate_modes[profile.name]={"actual_mode":actual_mode,"solver_status":evaluation.plan.solver_status,
+                                            "termination":attempts[-1]["termination"] if attempts else "TOTAL_TIME_LIMIT"}
+    recommended=next((n for n in ("BALANCED","PROTECTED","LEAN") if n in evaluations and evaluations[n].critic.passed),None)
+    proven=request.candidate_generation=='JOINT_MILP' and bool(evaluations) and len(evaluations)==len(profiles) and all(
+        e.plan.solver_status=="INFEASIBLE" and set(e.attempts[-1]["optimization_ids"])=={s.scenario_id for s in (request.evaluation_scenarios or request.demand_scenarios)}
+        for e in evaluations.values())
+    outcome="FEASIBLE" if recommended else "SEARCH_LIMIT_REACHED" if limited else "PROVEN_INFEASIBLE" if proven else "REJECTED_BY_EXACT_CRITIC"
+    base_provenance.update(candidate_modes=candidate_modes,elapsed_seconds=time.monotonic()-started,
+                           proof_scope="declared_lot_model_opportunities_profiles_and_worlds_including_deterministic_mean; not_unknown_real_supplier_semantics")
+    return OptimizationResult(request_id=request.request_id,evaluations=evaluations,recommended_strategy=recommended,
+        status="COMPLETED" if recommended else "NO_VALID_PROCUREMENT_PLAN",technical_outcome=outcome,
+        technical_feasible=True if recommended else None if limited else False,
+        provenance=base_provenance,diagnostics=pf["diagnostics"],warnings=[fallback] if fallback else [])

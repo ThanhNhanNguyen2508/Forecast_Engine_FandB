@@ -196,6 +196,14 @@ def create_supplier_offers(bundle_dir: str | Path, order_date: date | None = Non
                 "order_unit": order_unit,
                 "unit_price": source_price,
                 "price_basis": price_basis,
+                "delivery_schedule": None if pd.isna(row.get("delivery_schedule")) else str(row["delivery_schedule"]),
+                "ingredient_name": str(row["ingredient_name"]),
+                "calendar_confirmation_required": True,
+                "source_rule_id": f"{row['supplier_id']}|{row['ingredient_id']}",
+                "canonical_row": index + 1,
+                "source": str(bundle.canonical_files["supplier_rules"]),
+                "delivery_cost_status": "NOT_SUPPLIED",
+                "price_basis_confirmation_required": True,
             },
         ))
     return offers
@@ -206,14 +214,19 @@ def create_optimization_request(
     *,
     planning_end_date: date,
     demand_scenarios: Iterable[Any],
-    strategy_profiles: Iterable[Any],
-    cost_assumptions: Iterable[Any],
+    strategy_profiles: Iterable[Any] = (),
+    cost_assumptions: Iterable[Any] = (),
     budget: float | None = None,
     existing_inbound: Iterable[Any] = (),
+    planning_config: Any = None,
+    stochastic: bool = False,
+    seed: int = 42,
+    execution_mode: str = "demo",
 ) -> Any:
     """Build a real M5 contract only from caller-supplied planning assumptions."""
     from shelfcash_forecast.inventory.contracts import InventorySimulationPolicy
     from shelfcash_forecast.optimization.contracts import OptimizationRequest
+    from shelfcash_forecast.optimization.contracts import ProcurementDiagnostic
 
     bundle = load_bundle(bundle_dir)
     decision_date = bundle.manifest.context.cutoff_date
@@ -225,6 +238,19 @@ def create_optimization_request(
             f"INVENTORY_SNAPSHOT_BOUNDARY_MISMATCH:snapshot={snapshot}:decision={decision_date}"
         )
     policy_name = bundle.manifest.context.metadata.get("unknown_expiry_policy", "reject")
+    if planning_config is not None:
+        from shelfcash_forecast.optimization.planning_service import prepare_bundle_requests
+        mode = "stochastic" if stochastic else "deterministic"
+        requests, _, _ = prepare_bundle_requests(bundle_dir, planning=planning_config,
+            lots=lots, snapshot=snapshot, policy=InventorySimulationPolicy(unknown_expiry=policy_name),
+            scenarios=list(demand_scenarios), decision_date=decision_date,
+            planning_end_date=planning_end_date, seed=seed, optimization_mode=mode,
+            execution_mode=execution_mode)
+        data = requests[mode].model_dump()
+        data["existing_inbound"] = list(existing_inbound)
+        if list(strategy_profiles) or list(cost_assumptions) or budget is not None:
+            raise ValueError("DIRECT_API_CONFIG_CONFLICT:use versioned planning_config controls")
+        return OptimizationRequest.model_validate(data)
     return OptimizationRequest(
         request_id=f"preprocess-{bundle.manifest.run_id}", decision_date=decision_date,
         planning_end_date=planning_end_date, initial_inventory=lots,
@@ -234,6 +260,9 @@ def create_optimization_request(
         inventory_policy=InventorySimulationPolicy(unknown_expiry=policy_name),
         inventory_snapshot_date=snapshot,
         inventory_snapshot_boundary="EOD",
+        blocked_issues=[ProcurementDiagnostic(reason_code="VERSIONED_PLANNING_CONFIG_REQUIRED",proof_status="BLOCKED",
+            details={"field":"planning_config","legacy_api":"caller costs alone cannot resolve staged business rules or calendar"},
+            action_required=["PROVIDE_VERSIONED_PLANNING_CONFIG_WITH_EXPLICIT_OR_UNRESOLVED_SEMANTICS"])],
     )
 
 

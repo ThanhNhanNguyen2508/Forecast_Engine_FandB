@@ -386,9 +386,10 @@ def simulate_inventory( # chạy vật lý 1 lô cho một kịch bản tương 
                 and 0 <= (lot.expiry_date - simulation_date).days <= policy.at_risk_expiry_days
             )
             assumption = assumption_map.get(key)
+            active_capacity = assumption.capacity_on(simulation_date) if assumption else None
             capacity_violation = (
-                max(0.0, maximum_quantity - assumption.capacity_quantity)
-                if assumption is not None and assumption.capacity_quantity is not None
+                max(0.0, maximum_quantity - active_capacity)
+                if active_capacity is not None
                 else 0.0
             )
             ledger = DailyInventoryLedger(

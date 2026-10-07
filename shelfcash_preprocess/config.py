@@ -10,6 +10,8 @@ def project_root() -> Path:
     if override:
         return Path(override).resolve()
     source_root = Path(__file__).resolve().parent.parent
+    if (source_root / "pyproject.toml").is_file() and (source_root / "shelfcash.config.json").is_file():
+        return source_root
     editable_engine_root = source_root.parent
     if source_root.name == "source_code":
         return editable_engine_root

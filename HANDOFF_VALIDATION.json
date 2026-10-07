@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "verified_on_utc": "2026-10-07",
+  "scope": "Windows standalone source checkout; dependency environment reused for verification",
+  "python_version": "3.14.4",
+  "original_regression_suite": {"passed": 247, "failed": 0, "skipped": 0},
+  "checkout_local_suite": {"passed": 68, "failed": 0, "skipped": 0, "copied_existing_cases": 29, "new_cases": 39},
+  "git_checkout": {"autocrlf": true, "fixed_asset_files": 27, "asset_hashes_match": true},
+  "raw_to_m6_observed": {
+    "completed": true,
+    "profile_id": "P6_CONTINUITY",
+    "profile_version": 3,
+    "planning_mode": "SCENARIO_PREVIEW",
+    "environment": "DEMO",
+    "snapshot": "2026-08-12 EOD",
+    "horizon_start": "2026-08-13",
+    "horizon_end": "2026-08-19",
+    "scenario_count": 100,
+    "selected_mode": "stochastic",
+    "selected_strategy": "LEAN",
+    "technical_outcome": "FEASIBLE",
+    "critic_passed": true,
+    "order_lines": 14,
+    "immediate_lines": 10,
+    "scheduled_lines": 4,
+    "purchase_vnd": 13899000,
+    "delivery_vnd": 1200000,
+    "committed_procurement_vnd": 15099000,
+    "business_ready": false,
+    "execution_authorized": false,
+    "procurement_executed": false
+  },
+  "typed_what_if_observed": {
+    "budget_vnd": 0,
+    "technical_outcome": "PROVEN_INFEASIBLE",
+    "decision_status": "NO_VALID_PROCUREMENT_PLAN",
+    "execution_authorized": false,
+    "supplier_orders_executed": false
+  },
+  "limitations": [
+    "Dependency download and fresh setup installation were not performed during this verification; the existing pinned environment was reused.",
+    "Only Python 3.14.4 on Windows was exercised end to end; the Python 3.11 dependency resolution branch is not an E2E-tested environment.",
+    "DEMO preview depends on declared business and supplier assumptions; it is not production approval.",
+    "100 model-derived scenarios are not independent observed outcomes or a real-world probability guarantee."
+  ]
+}

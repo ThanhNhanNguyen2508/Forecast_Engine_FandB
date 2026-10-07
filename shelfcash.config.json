@@ -1,0 +1,1393 @@
+{
+  "schema_version": 1,
+  "pipeline": {
+    "input_path": "demo/input",
+    "bundle_path": null,
+    "artifacts_path": "demo/artifacts",
+    "output_root": "outputs",
+    "output_prefix": "pipeline_until_",
+    "cutoff_date": "2026-08-12",
+    "horizon": 7,
+    "execution_mode": "demo",
+    "store_id": "STORE_A",
+    "date_locale": "DMY",
+    "scenario_count": 100,
+    "seed": 42,
+    "optimization_mode": "compare"
+  },
+  "context_metadata": {
+    "unknown_expiry_policy": "warn_and_place_last",
+    "non_expiring_ingredient_ids": [
+      "ING_be9b1adc1759"
+    ],
+    "assumption_scope": "DEMO_ONLY_NOT_FOR_OPERATION",
+    "verification_mode": "DEMO_ONLY_NOT_FOR_OPERATION",
+    "assumption_note": "Explicit technical demo fixture matching the reviewed historical Demo bundle. This is not approval of a business expiry policy. Pass this file explicitly for raw Demo M4-M6; never load it automatically."
+  },
+  "planning": {
+    "schema_version": 3,
+    "planning_mode": "SCENARIO_PREVIEW",
+    "budget": null,
+    "currency": "VND",
+    "cost_policy": {
+      "holding_cost_rate_per_day": 0.001,
+      "shortage_cost_multiplier": 1.5,
+      "expired_cost_multiplier": 1.0,
+      "waste_cost_multiplier": 1.0,
+      "reference_price": "MIN_NORMALIZED_OFFER_PRICE_DEMO",
+      "purchase_price_source": null,
+      "units": null,
+      "rationale": "Explicit demo VND consequence estimates, unchanged baseline coefficients"
+    },
+    "optimization_scenario_count": 100,
+    "limits": {
+      "per_solve_seconds": 60.0,
+      "total_seconds": 600.0,
+      "max_refinement_iterations": 0,
+      "max_model_variables": 250000,
+      "max_model_constraints": 1000000
+    },
+    "candidate_generation": "DECOMPOSED_FIXED_CERTIFICATION",
+    "occupancy_coefficients": [
+      {
+        "ingredient_id": "ING_929389e845d7",
+        "base_unit": "kg",
+        "liters_per_base_unit": 3.0,
+        "lower_bound": 1.5,
+        "upper_bound": 3.0,
+        "assumption_id": "P6_CONTINUITY:occupancy_coefficients"
+      },
+      {
+        "ingredient_id": "ING_2ab4f157ea41",
+        "base_unit": "liter",
+        "liters_per_base_unit": 1.2,
+        "lower_bound": 1.05,
+        "upper_bound": 1.2,
+        "assumption_id": "P6_CONTINUITY:occupancy_coefficients"
+      },
+      {
+        "ingredient_id": "ING_4bc05ae244c2",
+        "base_unit": "kg",
+        "liters_per_base_unit": 1.6,
+        "lower_bound": 1.2,
+        "upper_bound": 1.6,
+        "assumption_id": "P6_CONTINUITY:occupancy_coefficients"
+      },
+      {
+        "ingredient_id": "ING_be9b1adc1759",
+        "base_unit": "unit",
+        "liters_per_base_unit": 0.02,
+        "lower_bound": 0.01,
+        "upper_bound": 0.02,
+        "assumption_id": "P6_CONTINUITY:occupancy_coefficients"
+      },
+      {
+        "ingredient_id": "ING_3de0147e2f31",
+        "base_unit": "kg",
+        "liters_per_base_unit": 5.0,
+        "lower_bound": 3.0,
+        "upper_bound": 5.0,
+        "assumption_id": "P6_CONTINUITY:occupancy_coefficients"
+      },
+      {
+        "ingredient_id": "ING_a92d553ec3dd",
+        "base_unit": "kg",
+        "liters_per_base_unit": 2.5,
+        "lower_bound": 1.5,
+        "upper_bound": 2.5,
+        "assumption_id": "P6_CONTINUITY:occupancy_coefficients"
+      },
+      {
+        "ingredient_id": "ING_46f61caac87e",
+        "base_unit": "kg",
+        "liters_per_base_unit": 3.5,
+        "lower_bound": 2.0,
+        "upper_bound": 3.5,
+        "assumption_id": "P6_CONTINUITY:occupancy_coefficients"
+      },
+      {
+        "ingredient_id": "ING_58519651a04e",
+        "base_unit": "liter",
+        "liters_per_base_unit": 1.2,
+        "lower_bound": 1.05,
+        "upper_bound": 1.2,
+        "assumption_id": "P6_CONTINUITY:occupancy_coefficients"
+      },
+      {
+        "ingredient_id": "ING_707a3c64c7c0",
+        "base_unit": "kg",
+        "liters_per_base_unit": 2.5,
+        "lower_bound": 1.4,
+        "upper_bound": 2.5,
+        "assumption_id": "P6_CONTINUITY:occupancy_coefficients"
+      },
+      {
+        "ingredient_id": "ING_91c572c83fc2",
+        "base_unit": "kg",
+        "liters_per_base_unit": 3.0,
+        "lower_bound": 1.5,
+        "upper_bound": 3.0,
+        "assumption_id": "P6_CONTINUITY:occupancy_coefficients"
+      }
+    ],
+    "contract_options": [
+      {
+        "contract_id": "PROPOSED_DAILY_LEAD1_ING_929389e845d7",
+        "source_rule_id": "NCC Trái Cây Minh Phát|ING_929389e845d7",
+        "proposed_lead_days": 1,
+        "receiving_weekdays": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "receiving_dates": [
+          "2026-08-13"
+        ],
+        "extra_fee": 100000.0,
+        "assumption_id": "P6_CONTINUITY:contract_options",
+        "classification": "CONTRACT_OPTION_REQUIRES_SUPPLIER_CONFIRMATION"
+      },
+      {
+        "contract_id": "PROPOSED_DAILY_LEAD1_ING_2ab4f157ea41",
+        "source_rule_id": "Sữa Việt Distribution|ING_2ab4f157ea41",
+        "proposed_lead_days": 1,
+        "receiving_weekdays": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "receiving_dates": [
+          "2026-08-13",
+          "2026-08-15",
+          "2026-08-16",
+          "2026-08-18"
+        ],
+        "extra_fee": 100000.0,
+        "assumption_id": "P6_CONTINUITY:contract_options",
+        "classification": "CONTRACT_OPTION_REQUIRES_SUPPLIER_CONFIRMATION"
+      },
+      {
+        "contract_id": "PROPOSED_DAILY_LEAD1_ING_4bc05ae244c2",
+        "source_rule_id": "Đại lý An Khang|ING_4bc05ae244c2",
+        "proposed_lead_days": 1,
+        "receiving_weekdays": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "receiving_dates": [
+          "2026-08-13"
+        ],
+        "extra_fee": 100000.0,
+        "assumption_id": "P6_CONTINUITY:contract_options",
+        "classification": "CONTRACT_OPTION_REQUIRES_SUPPLIER_CONFIRMATION"
+      },
+      {
+        "contract_id": "PROPOSED_DAILY_LEAD1_ING_be9b1adc1759",
+        "source_rule_id": "Bao bì Thành Công|ING_be9b1adc1759",
+        "proposed_lead_days": 1,
+        "receiving_weekdays": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "receiving_dates": [
+          "2026-08-13"
+        ],
+        "extra_fee": 100000.0,
+        "assumption_id": "P6_CONTINUITY:contract_options",
+        "classification": "CONTRACT_OPTION_REQUIRES_SUPPLIER_CONFIRMATION"
+      },
+      {
+        "contract_id": "PROPOSED_DAILY_LEAD1_ING_3de0147e2f31",
+        "source_rule_id": "Tea Source VN|ING_3de0147e2f31",
+        "proposed_lead_days": 1,
+        "receiving_weekdays": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "receiving_dates": [
+          "2026-08-13"
+        ],
+        "extra_fee": 100000.0,
+        "assumption_id": "P6_CONTINUITY:contract_options",
+        "classification": "CONTRACT_OPTION_REQUIRES_SUPPLIER_CONFIRMATION"
+      },
+      {
+        "contract_id": "PROPOSED_DAILY_LEAD1_ING_a92d553ec3dd",
+        "source_rule_id": "Nguyên liệu Pha Chế 88|ING_a92d553ec3dd",
+        "proposed_lead_days": 1,
+        "receiving_weekdays": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "receiving_dates": [
+          "2026-08-13"
+        ],
+        "extra_fee": 100000.0,
+        "assumption_id": "P6_CONTINUITY:contract_options",
+        "classification": "CONTRACT_OPTION_REQUIRES_SUPPLIER_CONFIRMATION"
+      },
+      {
+        "contract_id": "PROPOSED_DAILY_LEAD1_ING_46f61caac87e",
+        "source_rule_id": "Roastery 198|ING_46f61caac87e",
+        "proposed_lead_days": 1,
+        "receiving_weekdays": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "receiving_dates": [
+          "2026-08-13"
+        ],
+        "extra_fee": 100000.0,
+        "assumption_id": "P6_CONTINUITY:contract_options",
+        "classification": "CONTRACT_OPTION_REQUIRES_SUPPLIER_CONFIRMATION"
+      },
+      {
+        "contract_id": "PROPOSED_DAILY_LEAD1_ING_58519651a04e",
+        "source_rule_id": "Sữa Việt Distribution|ING_58519651a04e",
+        "proposed_lead_days": 1,
+        "receiving_weekdays": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "receiving_dates": [
+          "2026-08-13"
+        ],
+        "extra_fee": 100000.0,
+        "assumption_id": "P6_CONTINUITY:contract_options",
+        "classification": "CONTRACT_OPTION_REQUIRES_SUPPLIER_CONFIRMATION"
+      },
+      {
+        "contract_id": "PROPOSED_DAILY_LEAD1_ING_91c572c83fc2",
+        "source_rule_id": "Matcha House|ING_91c572c83fc2",
+        "proposed_lead_days": 1,
+        "receiving_weekdays": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "receiving_dates": [
+          "2026-08-13"
+        ],
+        "extra_fee": 100000.0,
+        "assumption_id": "P6_CONTINUITY:contract_options",
+        "classification": "CONTRACT_OPTION_REQUIRES_SUPPLIER_CONFIRMATION"
+      }
+    ],
+    "label": "DEMO_ONLY_NOT_FOR_OPERATION",
+    "description": "Restricted real per-key full100 optimization, then shared joint fixed-schedule MILP and exact full100 critic; global procurement cost optimum is not claimed. 600s per mode budget for up to10 keyed solves and joint certification per strategy; no unbounded search.",
+    "seed": 42,
+    "scenario_count": 100,
+    "selection_seed": 42,
+    "scenario_method": "residual_bootstrap",
+    "evaluation": "FULL_M4_POOL",
+    "budget_scope": "ALL_COMMITTED_REGULAR_PURCHASE_PLUS_DELIVERY",
+    "strategy_profiles": [],
+    "supplier_calendar": {
+      "status": "ASSUMED_FOR_SCENARIO",
+      "meaning": "RECEIVING",
+      "lead_time_basis": "CALENDAR_DAYS",
+      "order_boundary": "LEAD_FROM_ORDER_DATE",
+      "arrival_before_consumption": true,
+      "holiday_scope": "NO_HOLIDAY_EXCEPTIONS",
+      "holidays": [],
+      "working_weekdays": [],
+      "dispatch_transport_days": null,
+      "evidence": "P6_CONTINUITY: explicit unconfirmed scenario; supplier/receiving only"
+    },
+    "supplier_calendars": {},
+    "packaging_mappings": {
+      "Matcha House|ING_91c572c83fc2|hộp": "PACK_COUNT"
+    },
+    "price_basis_mappings": {
+      "NCC Trái Cây Minh Phát|ING_929389e845d7": {
+        "basis": "BASE_UNIT",
+        "evidence": "P6_CONTINUITY: assumption, raw transform default not confirmation"
+      },
+      "Sữa Việt Distribution|ING_2ab4f157ea41": {
+        "basis": "BASE_UNIT",
+        "evidence": "P6_CONTINUITY: assumption, raw transform default not confirmation"
+      },
+      "Đại lý An Khang|ING_4bc05ae244c2": {
+        "basis": "BASE_UNIT",
+        "evidence": "P6_CONTINUITY: assumption, raw transform default not confirmation"
+      },
+      "Bao bì Thành Công|ING_be9b1adc1759": {
+        "basis": "BASE_UNIT",
+        "evidence": "P6_CONTINUITY: assumption, raw transform default not confirmation"
+      },
+      "Tea Source VN|ING_3de0147e2f31": {
+        "basis": "BASE_UNIT",
+        "evidence": "P6_CONTINUITY: assumption, raw transform default not confirmation"
+      },
+      "Nguyên liệu Pha Chế 88|ING_a92d553ec3dd": {
+        "basis": "BASE_UNIT",
+        "evidence": "P6_CONTINUITY: assumption, raw transform default not confirmation"
+      },
+      "Roastery 198|ING_46f61caac87e": {
+        "basis": "BASE_UNIT",
+        "evidence": "P6_CONTINUITY: assumption, raw transform default not confirmation"
+      },
+      "Sữa Việt Distribution|ING_58519651a04e": {
+        "basis": "BASE_UNIT",
+        "evidence": "P6_CONTINUITY: assumption, raw transform default not confirmation"
+      },
+      "NCC Trái Cây Minh Phát|ING_707a3c64c7c0": {
+        "basis": "BASE_UNIT",
+        "evidence": "P6_CONTINUITY: assumption, raw transform default not confirmation"
+      },
+      "Matcha House|ING_91c572c83fc2": {
+        "basis": "BASE_UNIT",
+        "evidence": "P6_CONTINUITY: assumption, raw transform default not confirmation"
+      }
+    },
+    "rule_mappings": [
+      {
+        "rule_type": "storage_capacity",
+        "ingredient_id": null,
+        "unit": "liter",
+        "semantics": "GLOBAL_RECEIVING_PEAK",
+        "classification": "HARD",
+        "penalty_currency_per_unit": 0.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "safety_stock",
+        "ingredient_id": "ING_2ab4f157ea41",
+        "unit": "liter",
+        "semantics": "END_OF_DAY_MIN",
+        "classification": "SOFT",
+        "penalty_currency_per_unit": 640.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "safety_stock",
+        "ingredient_id": "ING_929389e845d7",
+        "unit": "kg",
+        "semantics": "END_OF_DAY_MIN",
+        "classification": "SOFT",
+        "penalty_currency_per_unit": 560.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "safety_stock",
+        "ingredient_id": "ING_707a3c64c7c0",
+        "unit": "kg",
+        "semantics": "END_OF_DAY_MIN",
+        "classification": "SOFT",
+        "penalty_currency_per_unit": 680.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "safety_stock",
+        "ingredient_id": "ING_4bc05ae244c2",
+        "unit": "kg",
+        "semantics": "END_OF_DAY_MIN",
+        "classification": "SOFT",
+        "penalty_currency_per_unit": 460.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "safety_stock",
+        "ingredient_id": "ING_3de0147e2f31",
+        "unit": "kg",
+        "semantics": "END_OF_DAY_MIN",
+        "classification": "SOFT",
+        "penalty_currency_per_unit": 3600.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "safety_stock",
+        "ingredient_id": "ING_a92d553ec3dd",
+        "unit": "kg",
+        "semantics": "END_OF_DAY_MIN",
+        "classification": "SOFT",
+        "penalty_currency_per_unit": 1360.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "safety_stock",
+        "ingredient_id": "ING_46f61caac87e",
+        "unit": "kg",
+        "semantics": "END_OF_DAY_MIN",
+        "classification": "SOFT",
+        "penalty_currency_per_unit": 4200.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "safety_stock",
+        "ingredient_id": "ING_58519651a04e",
+        "unit": "liter",
+        "semantics": "END_OF_DAY_MIN",
+        "classification": "SOFT",
+        "penalty_currency_per_unit": 940.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "safety_stock",
+        "ingredient_id": "ING_91c572c83fc2",
+        "unit": "kg",
+        "semantics": "END_OF_DAY_MIN",
+        "classification": "SOFT",
+        "penalty_currency_per_unit": 15200.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "safety_stock",
+        "ingredient_id": "ING_be9b1adc1759",
+        "unit": "unit",
+        "semantics": "END_OF_DAY_MIN",
+        "classification": "SOFT",
+        "penalty_currency_per_unit": 19.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "maximum_stock",
+        "ingredient_id": "ING_2ab4f157ea41",
+        "unit": "liter",
+        "semantics": "RECEIVING_PEAK",
+        "classification": "HARD",
+        "penalty_currency_per_unit": 0.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "maximum_stock",
+        "ingredient_id": "ING_929389e845d7",
+        "unit": "kg",
+        "semantics": "RECEIVING_PEAK",
+        "classification": "HARD",
+        "penalty_currency_per_unit": 0.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "maximum_stock",
+        "ingredient_id": "ING_707a3c64c7c0",
+        "unit": "kg",
+        "semantics": "RECEIVING_PEAK",
+        "classification": "HARD",
+        "penalty_currency_per_unit": 0.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "maximum_stock",
+        "ingredient_id": "ING_4bc05ae244c2",
+        "unit": "kg",
+        "semantics": "RECEIVING_PEAK",
+        "classification": "HARD",
+        "penalty_currency_per_unit": 0.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "maximum_stock",
+        "ingredient_id": "ING_3de0147e2f31",
+        "unit": "kg",
+        "semantics": "RECEIVING_PEAK",
+        "classification": "HARD",
+        "penalty_currency_per_unit": 0.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "maximum_stock",
+        "ingredient_id": "ING_a92d553ec3dd",
+        "unit": "kg",
+        "semantics": "RECEIVING_PEAK",
+        "classification": "HARD",
+        "penalty_currency_per_unit": 0.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "maximum_stock",
+        "ingredient_id": "ING_46f61caac87e",
+        "unit": "kg",
+        "semantics": "RECEIVING_PEAK",
+        "classification": "HARD",
+        "penalty_currency_per_unit": 0.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "maximum_stock",
+        "ingredient_id": "ING_58519651a04e",
+        "unit": "liter",
+        "semantics": "RECEIVING_PEAK",
+        "classification": "HARD",
+        "penalty_currency_per_unit": 0.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "maximum_stock",
+        "ingredient_id": "ING_91c572c83fc2",
+        "unit": "kg",
+        "semantics": "RECEIVING_PEAK",
+        "classification": "HARD",
+        "penalty_currency_per_unit": 0.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "maximum_stock",
+        "ingredient_id": "ING_be9b1adc1759",
+        "unit": "unit",
+        "semantics": "RECEIVING_PEAK",
+        "classification": "HARD",
+        "penalty_currency_per_unit": 0.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "shelf_life_target",
+        "ingredient_id": "ING_2ab4f157ea41",
+        "unit": "day",
+        "semantics": "PURCHASE_COVER_DAYS",
+        "classification": "ADVISORY",
+        "penalty_currency_per_unit": 0.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "shelf_life_target",
+        "ingredient_id": "ING_929389e845d7",
+        "unit": "day",
+        "semantics": "PURCHASE_COVER_DAYS",
+        "classification": "ADVISORY",
+        "penalty_currency_per_unit": 0.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "shelf_life_target",
+        "ingredient_id": "ING_707a3c64c7c0",
+        "unit": "day",
+        "semantics": "PURCHASE_COVER_DAYS",
+        "classification": "ADVISORY",
+        "penalty_currency_per_unit": 0.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "shelf_life_target",
+        "ingredient_id": "ING_a92d553ec3dd",
+        "unit": "day",
+        "semantics": "PURCHASE_COVER_DAYS",
+        "classification": "ADVISORY",
+        "penalty_currency_per_unit": 0.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      },
+      {
+        "rule_type": "service_level_target",
+        "ingredient_id": null,
+        "unit": "ratio",
+        "semantics": "PER_KEY_EXPECTED_FILL",
+        "classification": "HARD",
+        "penalty_currency_per_unit": 0.0,
+        "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+      }
+    ],
+    "stress_scenarios": [],
+    "stress_policy": "DIAGNOSTIC_ONLY",
+    "stress_base_scenario_id": null,
+    "delivery_cost_assumption": 50000.0,
+    "delivery_fee_scope": "SUPPLIER_STORE_ORDER_ARRIVAL_GROUP",
+    "metadata": {},
+    "scenario_profile": {
+      "schema_version": 1,
+      "profile_id": "P6_CONTINUITY",
+      "version": 3,
+      "description": "Conditional minimal early delivery13 August for diagnosed gaps; milk extra13/15/16/18 August plus unchanged regular14/17/19 receiving. Original policy/risk safeguards retained.",
+      "planning_context": "SCENARIO_PREVIEW",
+      "store_id": "STORE_A",
+      "selected_options": {
+        "U01": "NEGOTIATED",
+        "U02": "EXPEDITED",
+        "U03": "NO_EXCEPTIONS",
+        "U04": "PEAK_GLOBAL",
+        "U05": "SOFT_RESERVE",
+        "U06": "MATCHA_PACK",
+        "U07": "BASE_PRICE_GROUP_FEE"
+      },
+      "default_rationale": "P1 is default independently of cost/acceptance: preserves normal lead, conservative receiving peaks, same baseline service/risk floors, few supplier contract hypotheses.",
+      "changed_from_shared_baseline": [
+        "Cumulative-prefix recovery including earlier packaging; same service, soft reserve and physical safeguards.",
+        "Limit exception dates explicitly to reduce supplier prerequisites and solver branching; no service/rule downgrade.",
+        "Milk supply continuity on15/18 August required for high-demand worlds under peak60L; no zero-shortage universal policy imposed."
+      ],
+      "assumptions": [
+        {
+          "assumption_id": "P6_CONTINUITY:contract_options",
+          "profile_id": "P6_CONTINUITY",
+          "field_path": "contract_options",
+          "scope": "STORE_A",
+          "value": [
+            {
+              "contract_id": "PROPOSED_DAILY_LEAD1_ING_929389e845d7",
+              "source_rule_id": "NCC Trái Cây Minh Phát|ING_929389e845d7",
+              "proposed_lead_days": 1,
+              "receiving_weekdays": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "receiving_dates": [
+                "2026-08-13"
+              ],
+              "extra_fee": 100000.0,
+              "assumption_id": "P6_CONTINUITY:contract_options",
+              "classification": "CONTRACT_OPTION_REQUIRES_SUPPLIER_CONFIRMATION"
+            },
+            {
+              "contract_id": "PROPOSED_DAILY_LEAD1_ING_2ab4f157ea41",
+              "source_rule_id": "Sữa Việt Distribution|ING_2ab4f157ea41",
+              "proposed_lead_days": 1,
+              "receiving_weekdays": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "receiving_dates": [
+                "2026-08-13",
+                "2026-08-15",
+                "2026-08-16",
+                "2026-08-18"
+              ],
+              "extra_fee": 100000.0,
+              "assumption_id": "P6_CONTINUITY:contract_options",
+              "classification": "CONTRACT_OPTION_REQUIRES_SUPPLIER_CONFIRMATION"
+            },
+            {
+              "contract_id": "PROPOSED_DAILY_LEAD1_ING_4bc05ae244c2",
+              "source_rule_id": "Đại lý An Khang|ING_4bc05ae244c2",
+              "proposed_lead_days": 1,
+              "receiving_weekdays": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "receiving_dates": [
+                "2026-08-13"
+              ],
+              "extra_fee": 100000.0,
+              "assumption_id": "P6_CONTINUITY:contract_options",
+              "classification": "CONTRACT_OPTION_REQUIRES_SUPPLIER_CONFIRMATION"
+            },
+            {
+              "contract_id": "PROPOSED_DAILY_LEAD1_ING_be9b1adc1759",
+              "source_rule_id": "Bao bì Thành Công|ING_be9b1adc1759",
+              "proposed_lead_days": 1,
+              "receiving_weekdays": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "receiving_dates": [
+                "2026-08-13"
+              ],
+              "extra_fee": 100000.0,
+              "assumption_id": "P6_CONTINUITY:contract_options",
+              "classification": "CONTRACT_OPTION_REQUIRES_SUPPLIER_CONFIRMATION"
+            },
+            {
+              "contract_id": "PROPOSED_DAILY_LEAD1_ING_3de0147e2f31",
+              "source_rule_id": "Tea Source VN|ING_3de0147e2f31",
+              "proposed_lead_days": 1,
+              "receiving_weekdays": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "receiving_dates": [
+                "2026-08-13"
+              ],
+              "extra_fee": 100000.0,
+              "assumption_id": "P6_CONTINUITY:contract_options",
+              "classification": "CONTRACT_OPTION_REQUIRES_SUPPLIER_CONFIRMATION"
+            },
+            {
+              "contract_id": "PROPOSED_DAILY_LEAD1_ING_a92d553ec3dd",
+              "source_rule_id": "Nguyên liệu Pha Chế 88|ING_a92d553ec3dd",
+              "proposed_lead_days": 1,
+              "receiving_weekdays": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "receiving_dates": [
+                "2026-08-13"
+              ],
+              "extra_fee": 100000.0,
+              "assumption_id": "P6_CONTINUITY:contract_options",
+              "classification": "CONTRACT_OPTION_REQUIRES_SUPPLIER_CONFIRMATION"
+            },
+            {
+              "contract_id": "PROPOSED_DAILY_LEAD1_ING_46f61caac87e",
+              "source_rule_id": "Roastery 198|ING_46f61caac87e",
+              "proposed_lead_days": 1,
+              "receiving_weekdays": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "receiving_dates": [
+                "2026-08-13"
+              ],
+              "extra_fee": 100000.0,
+              "assumption_id": "P6_CONTINUITY:contract_options",
+              "classification": "CONTRACT_OPTION_REQUIRES_SUPPLIER_CONFIRMATION"
+            },
+            {
+              "contract_id": "PROPOSED_DAILY_LEAD1_ING_58519651a04e",
+              "source_rule_id": "Sữa Việt Distribution|ING_58519651a04e",
+              "proposed_lead_days": 1,
+              "receiving_weekdays": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "receiving_dates": [
+                "2026-08-13"
+              ],
+              "extra_fee": 100000.0,
+              "assumption_id": "P6_CONTINUITY:contract_options",
+              "classification": "CONTRACT_OPTION_REQUIRES_SUPPLIER_CONFIRMATION"
+            },
+            {
+              "contract_id": "PROPOSED_DAILY_LEAD1_ING_91c572c83fc2",
+              "source_rule_id": "Matcha House|ING_91c572c83fc2",
+              "proposed_lead_days": 1,
+              "receiving_weekdays": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "receiving_dates": [
+                "2026-08-13"
+              ],
+              "extra_fee": 100000.0,
+              "assumption_id": "P6_CONTINUITY:contract_options",
+              "classification": "CONTRACT_OPTION_REQUIRES_SUPPLIER_CONFIRMATION"
+            }
+          ],
+          "unit": "scoped typed contract",
+          "kind": "HYPOTHETICAL_SUPPLIER_CONTRACT",
+          "rationale": "Existing-supplier proposed lead1 and +100,000VND per shipment. Early13 August delivery for diagnosed source gaps; milk15/16/18 extra dates resolve between-regular-receipt coverage. Original regular calendar and shelf life unchanged.",
+          "source_status": "PROPOSED",
+          "source_locator": "sealed canonical supplier_rules/business_rules; explicit task-authorized assumptions",
+          "confirmation_required": true,
+          "sensitivity_alternatives": [
+            "catalogue alternate basis/calendar/rule; occupancy lower versus upper envelope"
+          ]
+        },
+        {
+          "assumption_id": "P6_CONTINUITY:cost_policy",
+          "profile_id": "P6_CONTINUITY",
+          "field_path": "cost_policy",
+          "scope": "STORE_A",
+          "value": {
+            "holding_cost_rate_per_day": 0.001,
+            "shortage_cost_multiplier": 1.5,
+            "expired_cost_multiplier": 1.0,
+            "waste_cost_multiplier": 1.0,
+            "reference_price": "MIN_NORMALIZED_OFFER_PRICE_DEMO",
+            "purchase_price_source": null,
+            "units": null,
+            "rationale": "Explicit demo VND consequence estimates, unchanged baseline coefficients"
+          },
+          "unit": "scoped typed contract",
+          "kind": "ENGINEERING_ESTIMATE",
+          "rationale": "Unchanged baseline demo holding/shortage/expiry coefficients; no business approval.",
+          "source_status": "ESTIMATED",
+          "source_locator": "sealed canonical supplier_rules/business_rules; explicit task-authorized assumptions",
+          "confirmation_required": true,
+          "sensitivity_alternatives": [
+            "catalogue alternate basis/calendar/rule; occupancy lower versus upper envelope"
+          ]
+        },
+        {
+          "assumption_id": "P6_CONTINUITY:currency",
+          "profile_id": "P6_CONTINUITY",
+          "field_path": "currency",
+          "scope": "STORE_A",
+          "value": "VND",
+          "unit": "scoped typed contract",
+          "kind": "AMBIGUOUS_SOURCE_INTERPRETATION",
+          "rationale": "VND accounting matches source numeric price context; no other currency supported.",
+          "source_status": "UNCONFIRMED",
+          "source_locator": "sealed canonical supplier_rules/business_rules; explicit task-authorized assumptions",
+          "confirmation_required": true,
+          "sensitivity_alternatives": [
+            "catalogue alternate basis/calendar/rule; occupancy lower versus upper envelope"
+          ]
+        },
+        {
+          "assumption_id": "P6_CONTINUITY:delivery_cost_assumption",
+          "profile_id": "P6_CONTINUITY",
+          "field_path": "delivery_cost_assumption",
+          "scope": "STORE_A",
+          "value": 50000.0,
+          "unit": "VND/group",
+          "kind": "ENGINEERING_ESTIMATE",
+          "rationale": "No factual fee supplied: estimated 50,000VND per declared fee group.",
+          "source_status": "ESTIMATED",
+          "source_locator": "sealed canonical supplier_rules/business_rules; explicit task-authorized assumptions",
+          "confirmation_required": true,
+          "sensitivity_alternatives": [
+            "catalogue alternate basis/calendar/rule; occupancy lower versus upper envelope"
+          ]
+        },
+        {
+          "assumption_id": "P6_CONTINUITY:delivery_fee_scope",
+          "profile_id": "P6_CONTINUITY",
+          "field_path": "delivery_fee_scope",
+          "scope": "STORE_A",
+          "value": "SUPPLIER_STORE_ORDER_ARRIVAL_GROUP",
+          "unit": "scoped typed contract",
+          "kind": "BUSINESS_POLICY_CHOICE",
+          "rationale": "Line versus shipment grouping is a business assumption, not a proven supplier discount.",
+          "source_status": "UNCONFIRMED",
+          "source_locator": "sealed canonical supplier_rules/business_rules; explicit task-authorized assumptions",
+          "confirmation_required": true,
+          "sensitivity_alternatives": [
+            "catalogue alternate basis/calendar/rule; occupancy lower versus upper envelope"
+          ]
+        },
+        {
+          "assumption_id": "P6_CONTINUITY:occupancy_coefficients",
+          "profile_id": "P6_CONTINUITY",
+          "field_path": "occupancy_coefficients",
+          "scope": "STORE_A",
+          "value": [
+            {
+              "ingredient_id": "ING_929389e845d7",
+              "base_unit": "kg",
+              "liters_per_base_unit": 3.0,
+              "lower_bound": 1.5,
+              "upper_bound": 3.0,
+              "assumption_id": "P6_CONTINUITY:occupancy_coefficients"
+            },
+            {
+              "ingredient_id": "ING_2ab4f157ea41",
+              "base_unit": "liter",
+              "liters_per_base_unit": 1.2,
+              "lower_bound": 1.05,
+              "upper_bound": 1.2,
+              "assumption_id": "P6_CONTINUITY:occupancy_coefficients"
+            },
+            {
+              "ingredient_id": "ING_4bc05ae244c2",
+              "base_unit": "kg",
+              "liters_per_base_unit": 1.6,
+              "lower_bound": 1.2,
+              "upper_bound": 1.6,
+              "assumption_id": "P6_CONTINUITY:occupancy_coefficients"
+            },
+            {
+              "ingredient_id": "ING_be9b1adc1759",
+              "base_unit": "unit",
+              "liters_per_base_unit": 0.02,
+              "lower_bound": 0.01,
+              "upper_bound": 0.02,
+              "assumption_id": "P6_CONTINUITY:occupancy_coefficients"
+            },
+            {
+              "ingredient_id": "ING_3de0147e2f31",
+              "base_unit": "kg",
+              "liters_per_base_unit": 5.0,
+              "lower_bound": 3.0,
+              "upper_bound": 5.0,
+              "assumption_id": "P6_CONTINUITY:occupancy_coefficients"
+            },
+            {
+              "ingredient_id": "ING_a92d553ec3dd",
+              "base_unit": "kg",
+              "liters_per_base_unit": 2.5,
+              "lower_bound": 1.5,
+              "upper_bound": 2.5,
+              "assumption_id": "P6_CONTINUITY:occupancy_coefficients"
+            },
+            {
+              "ingredient_id": "ING_46f61caac87e",
+              "base_unit": "kg",
+              "liters_per_base_unit": 3.5,
+              "lower_bound": 2.0,
+              "upper_bound": 3.5,
+              "assumption_id": "P6_CONTINUITY:occupancy_coefficients"
+            },
+            {
+              "ingredient_id": "ING_58519651a04e",
+              "base_unit": "liter",
+              "liters_per_base_unit": 1.2,
+              "lower_bound": 1.05,
+              "upper_bound": 1.2,
+              "assumption_id": "P6_CONTINUITY:occupancy_coefficients"
+            },
+            {
+              "ingredient_id": "ING_707a3c64c7c0",
+              "base_unit": "kg",
+              "liters_per_base_unit": 2.5,
+              "lower_bound": 1.4,
+              "upper_bound": 2.5,
+              "assumption_id": "P6_CONTINUITY:occupancy_coefficients"
+            },
+            {
+              "ingredient_id": "ING_91c572c83fc2",
+              "base_unit": "kg",
+              "liters_per_base_unit": 3.0,
+              "lower_bound": 1.5,
+              "upper_bound": 3.0,
+              "assumption_id": "P6_CONTINUITY:occupancy_coefficients"
+            }
+          ],
+          "unit": "scoped typed contract",
+          "kind": "ENGINEERING_ESTIMATE",
+          "rationale": "Bounded engineering storage envelopes for packaged liquids, fruit void space, dry materials and nested cups; enforce upper bounds. No measurements supplied.",
+          "source_status": "ESTIMATED",
+          "source_locator": "sealed canonical supplier_rules/business_rules; explicit task-authorized assumptions",
+          "confirmation_required": true,
+          "sensitivity_alternatives": [
+            "catalogue alternate basis/calendar/rule; occupancy lower versus upper envelope"
+          ]
+        },
+        {
+          "assumption_id": "P6_CONTINUITY:packaging_mappings",
+          "profile_id": "P6_CONTINUITY",
+          "field_path": "packaging_mappings",
+          "scope": "STORE_A",
+          "value": {
+            "Matcha House|ING_91c572c83fc2|hộp": "PACK_COUNT"
+          },
+          "unit": "scoped typed contract",
+          "kind": "AMBIGUOUS_SOURCE_INTERPRETATION",
+          "rationale": "Scoped matcha hộp=one0.5kg pack; other source pack MOQ preserved.",
+          "source_status": "UNCONFIRMED",
+          "source_locator": "sealed canonical supplier_rules/business_rules; explicit task-authorized assumptions",
+          "confirmation_required": true,
+          "sensitivity_alternatives": [
+            "catalogue alternate basis/calendar/rule; occupancy lower versus upper envelope"
+          ]
+        },
+        {
+          "assumption_id": "P6_CONTINUITY:price_basis_mappings",
+          "profile_id": "P6_CONTINUITY",
+          "field_path": "price_basis_mappings",
+          "scope": "STORE_A",
+          "value": {
+            "NCC Trái Cây Minh Phát|ING_929389e845d7": {
+              "basis": "BASE_UNIT",
+              "evidence": "P6_CONTINUITY: assumption, raw transform default not confirmation"
+            },
+            "Sữa Việt Distribution|ING_2ab4f157ea41": {
+              "basis": "BASE_UNIT",
+              "evidence": "P6_CONTINUITY: assumption, raw transform default not confirmation"
+            },
+            "Đại lý An Khang|ING_4bc05ae244c2": {
+              "basis": "BASE_UNIT",
+              "evidence": "P6_CONTINUITY: assumption, raw transform default not confirmation"
+            },
+            "Bao bì Thành Công|ING_be9b1adc1759": {
+              "basis": "BASE_UNIT",
+              "evidence": "P6_CONTINUITY: assumption, raw transform default not confirmation"
+            },
+            "Tea Source VN|ING_3de0147e2f31": {
+              "basis": "BASE_UNIT",
+              "evidence": "P6_CONTINUITY: assumption, raw transform default not confirmation"
+            },
+            "Nguyên liệu Pha Chế 88|ING_a92d553ec3dd": {
+              "basis": "BASE_UNIT",
+              "evidence": "P6_CONTINUITY: assumption, raw transform default not confirmation"
+            },
+            "Roastery 198|ING_46f61caac87e": {
+              "basis": "BASE_UNIT",
+              "evidence": "P6_CONTINUITY: assumption, raw transform default not confirmation"
+            },
+            "Sữa Việt Distribution|ING_58519651a04e": {
+              "basis": "BASE_UNIT",
+              "evidence": "P6_CONTINUITY: assumption, raw transform default not confirmation"
+            },
+            "NCC Trái Cây Minh Phát|ING_707a3c64c7c0": {
+              "basis": "BASE_UNIT",
+              "evidence": "P6_CONTINUITY: assumption, raw transform default not confirmation"
+            },
+            "Matcha House|ING_91c572c83fc2": {
+              "basis": "BASE_UNIT",
+              "evidence": "P6_CONTINUITY: assumption, raw transform default not confirmation"
+            }
+          },
+          "unit": "scoped typed contract",
+          "kind": "AMBIGUOUS_SOURCE_INTERPRETATION",
+          "rationale": "Raw prices interpreted per base unit; alternative pack basis is not a saving.",
+          "source_status": "UNCONFIRMED",
+          "source_locator": "sealed canonical supplier_rules/business_rules; explicit task-authorized assumptions",
+          "confirmation_required": true,
+          "sensitivity_alternatives": [
+            "catalogue alternate basis/calendar/rule; occupancy lower versus upper envelope"
+          ]
+        },
+        {
+          "assumption_id": "P6_CONTINUITY:rule_mappings",
+          "profile_id": "P6_CONTINUITY",
+          "field_path": "rule_mappings",
+          "scope": "STORE_A",
+          "value": [
+            {
+              "rule_type": "storage_capacity",
+              "ingredient_id": null,
+              "unit": "liter",
+              "semantics": "GLOBAL_RECEIVING_PEAK",
+              "classification": "HARD",
+              "penalty_currency_per_unit": 0.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "safety_stock",
+              "ingredient_id": "ING_2ab4f157ea41",
+              "unit": "liter",
+              "semantics": "END_OF_DAY_MIN",
+              "classification": "SOFT",
+              "penalty_currency_per_unit": 640.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "safety_stock",
+              "ingredient_id": "ING_929389e845d7",
+              "unit": "kg",
+              "semantics": "END_OF_DAY_MIN",
+              "classification": "SOFT",
+              "penalty_currency_per_unit": 560.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "safety_stock",
+              "ingredient_id": "ING_707a3c64c7c0",
+              "unit": "kg",
+              "semantics": "END_OF_DAY_MIN",
+              "classification": "SOFT",
+              "penalty_currency_per_unit": 680.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "safety_stock",
+              "ingredient_id": "ING_4bc05ae244c2",
+              "unit": "kg",
+              "semantics": "END_OF_DAY_MIN",
+              "classification": "SOFT",
+              "penalty_currency_per_unit": 460.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "safety_stock",
+              "ingredient_id": "ING_3de0147e2f31",
+              "unit": "kg",
+              "semantics": "END_OF_DAY_MIN",
+              "classification": "SOFT",
+              "penalty_currency_per_unit": 3600.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "safety_stock",
+              "ingredient_id": "ING_a92d553ec3dd",
+              "unit": "kg",
+              "semantics": "END_OF_DAY_MIN",
+              "classification": "SOFT",
+              "penalty_currency_per_unit": 1360.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "safety_stock",
+              "ingredient_id": "ING_46f61caac87e",
+              "unit": "kg",
+              "semantics": "END_OF_DAY_MIN",
+              "classification": "SOFT",
+              "penalty_currency_per_unit": 4200.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "safety_stock",
+              "ingredient_id": "ING_58519651a04e",
+              "unit": "liter",
+              "semantics": "END_OF_DAY_MIN",
+              "classification": "SOFT",
+              "penalty_currency_per_unit": 940.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "safety_stock",
+              "ingredient_id": "ING_91c572c83fc2",
+              "unit": "kg",
+              "semantics": "END_OF_DAY_MIN",
+              "classification": "SOFT",
+              "penalty_currency_per_unit": 15200.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "safety_stock",
+              "ingredient_id": "ING_be9b1adc1759",
+              "unit": "unit",
+              "semantics": "END_OF_DAY_MIN",
+              "classification": "SOFT",
+              "penalty_currency_per_unit": 19.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "maximum_stock",
+              "ingredient_id": "ING_2ab4f157ea41",
+              "unit": "liter",
+              "semantics": "RECEIVING_PEAK",
+              "classification": "HARD",
+              "penalty_currency_per_unit": 0.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "maximum_stock",
+              "ingredient_id": "ING_929389e845d7",
+              "unit": "kg",
+              "semantics": "RECEIVING_PEAK",
+              "classification": "HARD",
+              "penalty_currency_per_unit": 0.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "maximum_stock",
+              "ingredient_id": "ING_707a3c64c7c0",
+              "unit": "kg",
+              "semantics": "RECEIVING_PEAK",
+              "classification": "HARD",
+              "penalty_currency_per_unit": 0.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "maximum_stock",
+              "ingredient_id": "ING_4bc05ae244c2",
+              "unit": "kg",
+              "semantics": "RECEIVING_PEAK",
+              "classification": "HARD",
+              "penalty_currency_per_unit": 0.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "maximum_stock",
+              "ingredient_id": "ING_3de0147e2f31",
+              "unit": "kg",
+              "semantics": "RECEIVING_PEAK",
+              "classification": "HARD",
+              "penalty_currency_per_unit": 0.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "maximum_stock",
+              "ingredient_id": "ING_a92d553ec3dd",
+              "unit": "kg",
+              "semantics": "RECEIVING_PEAK",
+              "classification": "HARD",
+              "penalty_currency_per_unit": 0.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "maximum_stock",
+              "ingredient_id": "ING_46f61caac87e",
+              "unit": "kg",
+              "semantics": "RECEIVING_PEAK",
+              "classification": "HARD",
+              "penalty_currency_per_unit": 0.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "maximum_stock",
+              "ingredient_id": "ING_58519651a04e",
+              "unit": "liter",
+              "semantics": "RECEIVING_PEAK",
+              "classification": "HARD",
+              "penalty_currency_per_unit": 0.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "maximum_stock",
+              "ingredient_id": "ING_91c572c83fc2",
+              "unit": "kg",
+              "semantics": "RECEIVING_PEAK",
+              "classification": "HARD",
+              "penalty_currency_per_unit": 0.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "maximum_stock",
+              "ingredient_id": "ING_be9b1adc1759",
+              "unit": "unit",
+              "semantics": "RECEIVING_PEAK",
+              "classification": "HARD",
+              "penalty_currency_per_unit": 0.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "shelf_life_target",
+              "ingredient_id": "ING_2ab4f157ea41",
+              "unit": "day",
+              "semantics": "PURCHASE_COVER_DAYS",
+              "classification": "ADVISORY",
+              "penalty_currency_per_unit": 0.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "shelf_life_target",
+              "ingredient_id": "ING_929389e845d7",
+              "unit": "day",
+              "semantics": "PURCHASE_COVER_DAYS",
+              "classification": "ADVISORY",
+              "penalty_currency_per_unit": 0.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "shelf_life_target",
+              "ingredient_id": "ING_707a3c64c7c0",
+              "unit": "day",
+              "semantics": "PURCHASE_COVER_DAYS",
+              "classification": "ADVISORY",
+              "penalty_currency_per_unit": 0.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "shelf_life_target",
+              "ingredient_id": "ING_a92d553ec3dd",
+              "unit": "day",
+              "semantics": "PURCHASE_COVER_DAYS",
+              "classification": "ADVISORY",
+              "penalty_currency_per_unit": 0.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            },
+            {
+              "rule_type": "service_level_target",
+              "ingredient_id": null,
+              "unit": "ratio",
+              "semantics": "PER_KEY_EXPECTED_FILL",
+              "classification": "HARD",
+              "penalty_currency_per_unit": 0.0,
+              "evidence": "P6_CONTINUITY: service explicit business aim; peaks conservative physical interpretation; reserve is an EOD target rather than absolute no-sales minimum; cover advisory uses full-pool horizon daily mean"
+            }
+          ],
+          "unit": "scoped typed contract",
+          "kind": "BUSINESS_POLICY_CHOICE",
+          "rationale": "Hard per-key service95% and conservative physical peaks; EOD reserve/freshness target misses measured. Soft reserve variant penalizes misses in VND/unit.",
+          "source_status": "UNCONFIRMED",
+          "source_locator": "sealed canonical supplier_rules/business_rules; explicit task-authorized assumptions",
+          "confirmation_required": true,
+          "sensitivity_alternatives": [
+            "catalogue alternate basis/calendar/rule; occupancy lower versus upper envelope"
+          ]
+        },
+        {
+          "assumption_id": "P6_CONTINUITY:supplier_calendar",
+          "profile_id": "P6_CONTINUITY",
+          "field_path": "supplier_calendar",
+          "scope": "STORE_A",
+          "value": {
+            "status": "ASSUMED_FOR_SCENARIO",
+            "meaning": "RECEIVING",
+            "lead_time_basis": "CALENDAR_DAYS",
+            "order_boundary": "LEAD_FROM_ORDER_DATE",
+            "arrival_before_consumption": true,
+            "holiday_scope": "NO_HOLIDAY_EXCEPTIONS",
+            "holidays": [],
+            "working_weekdays": [],
+            "dispatch_transport_days": null,
+            "evidence": "P6_CONTINUITY: explicit unconfirmed scenario; supplier/receiving only"
+          },
+          "unit": "scoped typed contract",
+          "kind": "AMBIGUOUS_SOURCE_INTERPRETATION",
+          "rationale": "Interpretation chosen for chronology sensitivity; no supplier approval inferred.",
+          "source_status": "UNCONFIRMED",
+          "source_locator": "sealed canonical supplier_rules/business_rules; explicit task-authorized assumptions",
+          "confirmation_required": true,
+          "sensitivity_alternatives": [
+            "catalogue alternate basis/calendar/rule; occupancy lower versus upper envelope"
+          ]
+        },
+        {
+          "assumption_id": "P6_CONTINUITY:supplier_calendars",
+          "profile_id": "P6_CONTINUITY",
+          "field_path": "supplier_calendars",
+          "scope": "STORE_A",
+          "value": {},
+          "unit": "scoped typed contract",
+          "kind": "AMBIGUOUS_SOURCE_INTERPRETATION",
+          "rationale": "No unregistered supplier overrides.",
+          "source_status": "UNCONFIRMED",
+          "source_locator": "sealed canonical supplier_rules/business_rules; explicit task-authorized assumptions",
+          "confirmation_required": true,
+          "sensitivity_alternatives": [
+            "catalogue alternate basis/calendar/rule; occupancy lower versus upper envelope"
+          ]
+        }
+      ],
+      "configuration_binding_hash": "f0b05e9c5be333ddd026b8ddfbc654b333a73c0f794c7005d73dba508f066afd"
+    }
+  }
+}

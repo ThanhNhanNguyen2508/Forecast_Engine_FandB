@@ -1,0 +1,180 @@
+{
+  "benchmark_overall": [
+    {
+      "evaluation_scope": "engine_target",
+      "method": "ETS optimized",
+      "evaluation_rows": 875,
+      "sum_abs_actual": 29935.0,
+      "sum_abs_error": 5214.658947017109,
+      "mae": 5.959610225162411,
+      "wape_ratio": 0.174199396927246,
+      "wape_percent": 17.4199396927246,
+      "bias": 0.6084276837880551
+    },
+    {
+      "evaluation_scope": "engine_target",
+      "method": "ETS repository variant",
+      "evaluation_rows": 875,
+      "sum_abs_actual": 29935.0,
+      "sum_abs_error": 5165.1544288206005,
+      "mae": 5.903033632937829,
+      "wape_ratio": 0.17254566323102055,
+      "wape_percent": 17.254566323102058,
+      "bias": 0.6643392277216399
+    },
+    {
+      "evaluation_scope": "engine_target",
+      "method": "LightGBM candidate + point correction",
+      "evaluation_rows": 875,
+      "sum_abs_actual": 29935.0,
+      "sum_abs_error": 4528.682565513558,
+      "mae": 5.175637217729781,
+      "wape_ratio": 0.1512838672294491,
+      "wape_percent": 15.128386722944908,
+      "bias": 2.426491170322483
+    },
+    {
+      "evaluation_scope": "engine_target",
+      "method": "MA28",
+      "evaluation_rows": 875,
+      "sum_abs_actual": 29935.0,
+      "sum_abs_error": 5704.666666666666,
+      "mae": 6.519619047619047,
+      "wape_ratio": 0.1905684538722788,
+      "wape_percent": 19.05684538722788,
+      "bias": 3.321779289493575
+    },
+    {
+      "evaluation_scope": "engine_target",
+      "method": "MA7",
+      "evaluation_rows": 875,
+      "sum_abs_actual": 29935.0,
+      "sum_abs_error": 5319.285714285715,
+      "mae": 6.079183673469388,
+      "wape_ratio": 0.17769452862153715,
+      "wape_percent": 17.769452862153717,
+      "bias": 1.609959183673469
+    },
+    {
+      "evaluation_scope": "engine_target",
+      "method": "New pure LightGBM before point correction",
+      "evaluation_rows": 875,
+      "sum_abs_actual": 29935.0,
+      "sum_abs_error": 4621.664608577392,
+      "mae": 5.281902409802734,
+      "wape_ratio": 0.15438999861624828,
+      "wape_percent": 15.438999861624827,
+      "bias": 2.878447304591457
+    },
+    {
+      "evaluation_scope": "engine_target",
+      "method": "Original pure LightGBM reference",
+      "evaluation_rows": 875,
+      "sum_abs_actual": 29935.0,
+      "sum_abs_error": 4924.044798270712,
+      "mae": 5.6274797694522425,
+      "wape_ratio": 0.16449122426159052,
+      "wape_percent": 16.44912242615905,
+      "bias": 3.3925920608284468
+    },
+    {
+      "evaluation_scope": "engine_target",
+      "method": "Seasonal naive 7",
+      "evaluation_rows": 875,
+      "sum_abs_actual": 29935.0,
+      "sum_abs_error": 4839.0,
+      "mae": 5.530285714285714,
+      "wape_ratio": 0.16165024219141474,
+      "wape_percent": 16.165024219141472,
+      "bias": 1.5257142857142858
+    },
+    {
+      "evaluation_scope": "observed_uncensored",
+      "method": "ETS optimized",
+      "evaluation_rows": 859,
+      "sum_abs_actual": 29334.0,
+      "sum_abs_error": 5184.639583035594,
+      "mae": 6.035668897596733,
+      "wape_ratio": 0.17674505976121888,
+      "wape_percent": 17.674505976121885,
+      "bias": 0.6221112774110168
+    },
+    {
+      "evaluation_scope": "observed_uncensored",
+      "method": "ETS repository variant",
+      "evaluation_rows": 859,
+      "sum_abs_actual": 29334.0,
+      "sum_abs_error": 5129.274174256955,
+      "mae": 5.971215569565722,
+      "wape_ratio": 0.17485764553954303,
+      "wape_percent": 17.485764553954304,
+      "bias": 0.6845726315356531
+    },
+    {
+      "evaluation_scope": "observed_uncensored",
+      "method": "LightGBM candidate + point correction",
+      "evaluation_rows": 859,
+      "sum_abs_actual": 29334.0,
+      "sum_abs_error": 4501.362850366011,
+      "mae": 5.240236147108279,
+      "wape_ratio": 0.15345206417011015,
+      "wape_percent": 15.345206417011015,
+      "bias": 2.4755169583500534
+    },
+    {
+      "evaluation_scope": "observed_uncensored",
+      "method": "MA28",
+      "evaluation_rows": 859,
+      "sum_abs_actual": 29334.0,
+      "sum_abs_error": 5675.588624338625,
+      "mae": 6.607204452082217,
+      "wape_ratio": 0.1934815785211231,
+      "wape_percent": 19.348157852112312,
+      "bias": 3.3498007403711716
+    },
+    {
+      "evaluation_scope": "observed_uncensored",
+      "method": "MA7",
+      "evaluation_rows": 859,
+      "sum_abs_actual": 29334.0,
+      "sum_abs_error": 5275.714285714285,
+      "mae": 6.141692998503243,
+      "wape_ratio": 0.1798498086082459,
+      "wape_percent": 17.98498086082459,
+      "bias": 1.6125062364876104
+    },
+    {
+      "evaluation_scope": "observed_uncensored",
+      "method": "New pure LightGBM before point correction",
+      "evaluation_rows": 859,
+      "sum_abs_actual": 29334.0,
+      "sum_abs_error": 4596.245441167642,
+      "mae": 5.35069317947339,
+      "wape_ratio": 0.15668662443470519,
+      "wape_percent": 15.668662443470517,
+      "bias": 2.9267531553492088
+    },
+    {
+      "evaluation_scope": "observed_uncensored",
+      "method": "Original pure LightGBM reference",
+      "evaluation_rows": 859,
+      "sum_abs_actual": 29334.0,
+      "sum_abs_error": 4893.6021029589465,
+      "mae": 5.696859258392254,
+      "wape_ratio": 0.1668235529746692,
+      "wape_percent": 16.68235529746692,
+      "bias": 3.4203438392469447
+    },
+    {
+      "evaluation_scope": "observed_uncensored",
+      "method": "Seasonal naive 7",
+      "evaluation_rows": 859,
+      "sum_abs_actual": 29334.0,
+      "sum_abs_error": 4798.0,
+      "mae": 5.585564610011642,
+      "wape_ratio": 0.16356446444398992,
+      "wape_percent": 16.35644644439899,
+      "bias": 1.569266589057043
+    }
+  ]
+}
