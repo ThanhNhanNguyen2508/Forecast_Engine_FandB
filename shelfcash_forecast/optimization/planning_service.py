@@ -109,6 +109,11 @@ def create_order_opportunities(base_offers, end, config, environment):
         raise ValueError('PRODUCTION_REJECTS_HYPOTHETICAL_SCENARIO')
     for base in base_offers:
         source=base.source_terms;rule=source["source_rule_id"]
+        if config.delivery_cost_assumption is None and source.get('delivery_cost_status')=='NOT_SUPPLIED':
+            issues.append(ProcurementDiagnostic(reason_code='DELIVERY_FEE_REQUIRED',proof_status='BLOCKED',
+                store_id=base.store_id,ingredient_id=base.ingredient_id,field_paths=['delivery_cost_assumption'],
+                source=source,expected_meaning='explicit zero/free fee or fee amount and scope; missing is not free',
+                action_required=['CONFIRM_DELIVERY_FEE_OR_DECLARE_SCENARIO_ASSUMPTION']))
         price_mapping=config.price_basis_mappings.get(rule)
         price_blocked=source.get("price_basis_confirmation_required",False) and price_mapping is None
         if price_blocked:
@@ -294,6 +299,8 @@ def prepare_bundle_requests(bundle, *, planning, lots, snapshot, policy, scenari
         seed=seed,limits=config.limits,stochastic=mode=="stochastic",allow_mode_fallback=False,
         business_issues=["DEMO_CONSEQUENCE_COSTS_NOT_APPROVED","BUSINESS_RULES_PENDING_VALIDATION","MODEL_NOT_PROMOTED_FOR_PRODUCTION"],
         blocked_issues=issues,rule_coverage=coverage,environment=environment,scenario_provenance=provenance,
+        entity_display_names={'ingredients':{str(r['ingredient_id']):str(r['ingredient_name']) for name in ['inventory_snapshot','supplier_rules','recipes'] if name in frames
+            for r in frames[name].to_dict('records')}},
         planning_mode=config.planning_mode,planning_binding=binding,normalized_rules=rules,
         candidate_generation=config.candidate_generation,
         stress_scenarios=config.stress_scenarios,stress_base_scenario_id=config.stress_base_scenario_id) for mode in modes}
@@ -318,9 +325,41 @@ def run_bundle_planning(bundle, **kwargs):
         logging.basicConfig(level=logging.INFO,format='%(message)s')
     from shelfcash_forecast.optimization.optimizer import optimize_procurement
     requests,config,provenance=prepare_bundle_requests(bundle,**kwargs)
-    runs={mode:(r,optimize_procurement(r)) for mode,r in requests.items()}
+    runs={mode:(r,optimize_procurement(r,structured_errors=True)) for mode,r in requests.items()}
     selected=next((mode for mode in ("stochastic","deterministic") if mode in runs and runs[mode][1].recommended_strategy is not None),
                   "stochastic" if "stochastic" in runs else next(iter(runs)))
     provenance["compare_selection_policy"]="accepted_stochastic_then_accepted_deterministic_else_stochastic_diagnostics"
     r,result=runs[selected]
     return PlanningRun(selected,r,result,runs,config,provenance)
+
+
+def run_typed_planning(request, *, destination=None):
+    """Public BE/Python/CLI path; natural-language adapters are optional."""
+    from shelfcash_forecast.optimization.optimizer import optimize_procurement
+    from shelfcash_forecast.optimization.export import export_planning_run
+    from shelfcash_forecast.decision_intelligence.service import build_final_decision_package
+    from shelfcash_forecast.json_output import write_json
+    result=optimize_procurement(request,structured_errors=True)
+    if result.technical_outcome=='INVALID_INPUT':
+        if destination is not None:
+            folder=Path(destination);folder.mkdir(parents=True,exist_ok=False)
+            write_json(folder/'optimization_result.json',result)
+            write_json(folder/'customer_diagnostic_package.json',{'schema_version':2,'technical_outcome':result.technical_outcome,
+                'orders':[],'accepted_zero_purchase':False,'diagnostics':result.diagnostics,'business_ready':False,'execution_authorized':False})
+            (folder/'CUSTOMER_DIAGNOSTICS_VI.md').write_text('INVALID_INPUT; chưa lập plan.\n'+ '\n'.join(d.reason_code+': '+str(d.field_paths)+'; '+str(d.expected_meaning) for d in result.diagnostics),encoding='utf-8')
+            from shelfcash_forecast.optimization.customer_export import export_invalid_customer_diagnostics
+            try:
+                status=export_invalid_customer_diagnostics(result,folder)
+            except Exception as exc:
+                status={'status':'EXPORT_FAILED','customer_export_complete':False,'technical_result_preserved':True,
+                    'error':{'code':'CUSTOMER_EXPORT_FAILED','type':type(exc).__name__,'message':str(exc)}}
+            write_json(folder/'customer_export_status.json',status)
+        return result
+    typed=OptimizationRequest.model_validate(request)
+    mode=result.provenance.get('actual_mode','stochastic' if typed.stochastic else 'deterministic')
+    run=PlanningRun(mode,typed,result,{mode:(typed,result)},typed,{'compare_selection_policy':'BALANCED_then_PROTECTED_then_LEAN_if_valid','data_origin':'TYPED_REQUEST_DECLARED_INPUT'})
+    if destination is not None:
+        export_planning_run(run,destination)
+        decision=build_final_decision_package(typed,result)
+        write_json(Path(destination)/'decision_package.json',decision)
+    return run

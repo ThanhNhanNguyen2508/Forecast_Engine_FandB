@@ -42,6 +42,11 @@ from shelfcash_forecast.decision_intelligence.what_if.service import (
 
 class DecisionContextResolverAgent:
     def resolve(self, question: str, decision: FinalDecisionPackage) -> list[str]:
+        from shelfcash_forecast.decision_intelligence.what_if.rules import parse_demand_rule
+        # An exact global rule contains no entity selector. The legacy entity
+        # extractor otherwise mistakes the Vietnamese word "trong" for an ID.
+        if parse_demand_rule(question).status == "PARSED":
+            return []
         unknown = unknown_explicit_entities(question, decision.evidence_package)
         aliases = {
             "store": "store_id",
@@ -209,13 +214,17 @@ class DecisionOrchestrator:
                 raise AgentToolError("M6_AGENT_RECURSIVE_OR_DUPLICATE_TOOL_CALL")
             result = self.registry.call(request.mode, name, **kwargs)
             tool_calls.append(name)
+            trace_inputs = {k: v for k, v in kwargs.items() if k != "gateway"}
+            if "gateway" in kwargs:
+                gateway = kwargs["gateway"]
+                trace_inputs["computation_gateway_type"] = type(gateway).__module__ + "." + type(gateway).__qualname__ if gateway is not None else "M5ComputationGateway(default)"
             trace.append(
                 trace_event(
                     len(trace),
                     "DecisionToolRegistry",
                     name,
                     "MODE_ALLOWLIST_VERIFIED",
-                    kwargs,
+                    trace_inputs,
                     result,
                     "COMPLETED",
                 )

@@ -16,7 +16,7 @@ from scipy.optimize import Bounds, LinearConstraint, milp
 from scipy.sparse import coo_matrix
 
 from shelfcash_forecast.bom.units import UnitConverter, normalize_unit
-from shelfcash_forecast.inventory.adapters import normalize_cost_assumptions
+from shelfcash_forecast.inventory.adapters import normalize_cost_assumptions, canonical_demand_scenarios
 from shelfcash_forecast.inventory.contracts import InventoryDemandLine, InventoryDemandScenario, InventoryLot
 from shelfcash_forecast.inventory.fefo import fefo_sort_key, is_expired
 from shelfcash_forecast.optimization.chronology import expiry_date, offer_arrival, planned_lot_id
@@ -106,23 +106,32 @@ def mean_world(request: OptimizationRequest) -> InventoryDemandScenario:
     if any(w is None for w in weights):
         weights = [1 / len(weights)] * len(weights)
     quantities = defaultdict(float)
-    for scenario, weight in zip(request.demand_scenarios,weights,strict=True):
+    existing={s.scenario_id for s in [*request.demand_scenarios,*request.evaluation_scenarios]}
+    mean_id='__DETERMINISTIC_MEAN__'
+    suffix=0
+    while mean_id in existing:
+        suffix+=1;mean_id=f'__DETERMINISTIC_MEAN__#{suffix}'
+    for scenario, weight in zip(canonical_demand_scenarios(request.demand_scenarios, UnitConverter(request.unit_conversions)),weights,strict=True):
         for line in scenario.lines:
             quantities[(line.store_id,line.ingredient_id,line.target_date,line.unit)] += float(weight)*line.quantity
-    return InventoryDemandScenario(scenario_id="__DETERMINISTIC_MEAN__",probability_weight=1.0,
+    return InventoryDemandScenario(scenario_id=mean_id,probability_weight=1.0,
         simulation_start_date=request.decision_date+timedelta(days=1), simulation_end_date=request.planning_end_date,
-        lines=[InventoryDemandLine(scenario_id="__DETERMINISTIC_MEAN__", store_id=k[0],ingredient_id=k[1],
+        lines=[InventoryDemandLine(scenario_id=mean_id, store_id=k[0],ingredient_id=k[1],
                                    target_date=k[2],unit=k[3],quantity=q) for k,q in sorted(quantities.items())],
         provenance={"derivation":"weighted_mean_of_optimization_worlds","not_independent_oos":True})
 
 
 def solve_lot_procurement(request: OptimizationRequest, profile: StrategyProfile, *, stochastic: bool,
                           fixed_pack_counts: dict[str,int] | None = None,
-                          aggregate_nonexpiring_candidate_lots: bool = False) -> ProcurementPlan:
+                          aggregate_nonexpiring_candidate_lots: bool = False,
+                          feasibility_first: bool = False) -> ProcurementPlan:
     started = time.monotonic()
     if any(o.emergency for o in request.supplier_offers):
         raise OptimizationNotAvailableError("Adaptive recourse policy is not implemented.",code="RECOURSE_POLICY_NOT_SUPPORTED")
     model = SparseModel(); model.variable(0); converter = UnitConverter(request.unit_conversions)
+    request = request.model_copy(update={
+        'demand_scenarios': canonical_demand_scenarios(request.demand_scenarios, converter),
+        'evaluation_scenarios': canonical_demand_scenarios(request.evaluation_scenarios, converter)})
     units = {}
     for scenario in request.demand_scenarios:
         for line in scenario.lines:
@@ -378,6 +387,11 @@ def solve_lot_procurement(request: OptimizationRequest, profile: StrategyProfile
         return ProcurementPlan(plan_id=f"{request.request_id}-{profile.name.lower()}",strategy=profile.name,
             orders=[],purchase_cost=0,expected_recourse_cost=0,solver_status="LIMIT_REACHED",
             provenance={"termination":"MODEL_BUILD_TOTAL_TIME_LIMIT","elapsed_seconds":time.monotonic()-started})
+    if feasibility_first:
+        # Preserve all physics and hard/service constraints. Objective weights
+        # cannot prevent discovery of a feasible integer incumbent in this phase.
+        model.cost = [0.0] * len(model.cost)
+        model.objective_constant = 0.0
     result,dimensions=model.solve(solve_seconds)
     status={0:"OPTIMAL",1:"LIMIT_REACHED",2:"INFEASIBLE",3:"UNBOUNDED"}.get(result.status,"SOLVER_ERROR")
     orders=[]
@@ -405,12 +419,18 @@ def solve_lot_procurement(request: OptimizationRequest, profile: StrategyProfile
         solver_status=status,provenance={"solver":"scipy.optimize.milp","formulation":"sequential_fefo_greedy_lost_sales_v2",
             "exact_inventory_physics":True,"requires_m4_resimulation":True,"mode":"stochastic" if stochastic else "deterministic",
             "physics_scenario_ids":[s.scenario_id for s in physics_worlds],"predicted_daily_ledgers":evidence,
+            'objective_world_weights':weights,
             "cost_components_by_world":cost_breakdown,"purchase_plus_delivery":cost,"currency":request.currency,
             'planning_binding':request.planning_binding,'planning_mode':request.planning_mode,
             'shipment_count':len({shipment_group(next(o for o in offers if o.offer_id==l.offer_id)) for l in orders}),
             'optimization_scope':'FIXED_COMMITMENTS_CERTIFICATION_NOT_GLOBAL_COST_OPTIMUM' if fixed_pack_counts is not None else 'JOINT_DECLARED_OPPORTUNITY_MILP',
             'candidate_nonexpiring_lot_aggregation':aggregation_evidence,
             'individual_lot_fefo_authority':not aggregate_nonexpiring_candidate_lots,
+            'has_integer_incumbent':result.x is not None and result.status in {0,1},
+            'search_phase':'FEASIBILITY_FIRST' if feasibility_first else 'PREFERENCE_OPTIMIZATION',
+            'mip_gap':getattr(result,'mip_gap',None),
+            'mip_dual_bound':getattr(result,'mip_dual_bound',None),
+            'global_optimality_claimed':result.status == 0 and fixed_pack_counts is None and not feasibility_first and not request.evaluation_scenarios,
             "cost_coverage":"COMPLETE" if set(assumptions)==set(keys) else "MISSING_CONSEQUENCE_COSTS",
             "bound_semantics":"regular_lost_sales_dominance_bound_no_terminal_minimum_stock",
             "infeasibility_scope":"declared_input_opportunities_and_profile_optimization_worlds_only",

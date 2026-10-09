@@ -32,6 +32,13 @@ def load_canonical_frames(
     frames: dict[str, pd.DataFrame] = {}
     for name, path in bundle.canonical_files.items():
         frames[name] = read_frame(name, path)
+    conversions=bundle.manifest.context.metadata.get('unit_conversions')
+    if conversions is not None:
+        from shelfcash_forecast.bom.contracts import UnitConversionRule
+        from shelfcash_forecast.bom.units import UnitConverter
+        rules=[UnitConversionRule.model_validate(row) for row in conversions]
+        UnitConverter(rules)
+        frames['unit_conversions']=pd.DataFrame([r.model_dump() for r in rules])
     return frames
 
 

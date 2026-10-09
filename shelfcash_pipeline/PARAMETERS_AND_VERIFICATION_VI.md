@@ -111,11 +111,11 @@ Các key mô tả như units/rationale/description/production_readiness chỉ l�
 | `-BundlePath` | Bundle có sẵn; loại trừ InputPath và ContextMetadataFile | Khi muốn bỏ raw preprocess |
 | `-ArtifactsPath` | Model/encoder/point/CQR/residual đã train; default research artifacts | Đổi bộ model đúng schema |
 | `-OutputDir` | Default pipeline_until_<mốc>; chỉ ghi đè output do runner sở hữu | Đổi nơi lưu |
-| `-CutoffDate` | YYYY-MM-DD; default 2026-08-12; mốc cuối ngày EOD | Mốc lịch sử dùng forecast/quyết định |
+| `-CutoffDate` | YYYY-MM-DD bắt buộc; mốc cuối ngày EOD | Mốc lịch sử dùng forecast/quyết định; không tự chọn tuần DEMO |
 | `-Horizon` | Default 7; phải nằm trong horizon của artifact (hiện 1..7) | Số ngày dự báo/mô phỏng/planning |
 | `-ExecutionMode` | demo/production/backtest_replay; default demo | Chọn điều kiện artifact |
-| `-StoreId` | STORE_A; fallback preprocessing và scope supplier | Mã cửa hàng |
-| `-DateLocale` | DMY/MDY/YMD; default DMY | Cách hiểu ngày trong raw input |
+| `-StoreId` | Không có default; explicit khi raw thiếu scope | Mã cửa hàng từ nguồn hoặc mapping review |
+| `-DateLocale` | DMY/MDY/YMD; thiếu thì discovery/review | Locale mơ hồ không tự resolve |
 | `-ContextMetadataFile` | JSON metadata, chỉ raw input | Phân loại/xử lý expiry |
 | `-PlanningConfig` | JSON planning | Bắt buộc để chạy M5/M6 |
 | `-ScenarioCount` | Default 100; 1..2000 | Số kịch bản M4 |

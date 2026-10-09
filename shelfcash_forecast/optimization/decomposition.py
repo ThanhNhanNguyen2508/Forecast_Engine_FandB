@@ -60,9 +60,32 @@ def solve_decomposed(request,profile,*,stochastic):
         logging.getLogger(__name__).info('Projected %s %s worlds=%s',profile.name,key,len(full))
         plan=solve_lot_procurement(projected,generation,stochastic=stochastic,aggregate_nonexpiring_candidate_lots=True)
         logging.getLogger(__name__).info('Projected %s %s solver=%s elapsed=%.2f',profile.name,key,plan.solver_status,plan.provenance.get('elapsed_seconds',0))
+        generation_attempts=[{'policy':'UNIFORM_UNION_BOUND_CANDIDATE_RESTRICTION',
+            'stockout_ceiling':per_key_ceiling,'solver_status':plan.solver_status,
+            'elapsed_seconds':plan.provenance.get('elapsed_seconds'),'request_hash':content_hash(projected)}]
+        used_ceiling=per_key_ceiling
+        # The uniform union allocation is sufficient, not necessary, for the
+        # original package risk ceiling. Its infeasibility is not a proof for
+        # the parent. One bounded retry uses the original profile on this key;
+        # joint fixed certification and the exact critic retain EVERY parent
+        # policy and measure the actual union on the full, unchanged pool.
+        remaining=request.limits.total_seconds-(time.monotonic()-start)
+        if plan.solver_status=='INFEASIBLE' and remaining>0 and per_key_ceiling<ceiling:
+            retry=OptimizationRequest.model_validate({**projected.model_dump(),
+                'limits':{**projected.limits.model_dump(),'total_seconds':remaining,
+                          'per_solve_seconds':min(request.limits.per_solve_seconds,remaining)}})
+            logging.getLogger(__name__).info('Projected %s %s bounded retry original_profile_ceiling=%s',profile.name,key,ceiling)
+            plan=solve_lot_procurement(retry,profile,stochastic=stochastic,aggregate_nonexpiring_candidate_lots=True)
+            used_ceiling=ceiling
+            generation_attempts.append({'policy':'ORIGINAL_PROFILE_CEILING_BOUNDED_RETRY',
+                'stockout_ceiling':ceiling,'solver_status':plan.solver_status,
+                'elapsed_seconds':plan.provenance.get('elapsed_seconds'),'request_hash':content_hash(retry)})
+            logging.getLogger(__name__).info('Projected retry %s %s solver=%s',profile.name,key,plan.solver_status)
         evidence.append({'key':key,'request_hash':content_hash(projected),'projection_binding':projected.planning_binding,
             'solver_status':plan.solver_status,'plan':plan.model_dump(mode='json'),
-            'generation_thresholds':{'universal_floor':profile.minimum_acceptable_fill_rate,'per_key_stockout_ceiling':per_key_ceiling,
+            'generation_attempts':generation_attempts,
+            'generation_thresholds':{'universal_floor':profile.minimum_acceptable_fill_rate,'per_key_stockout_ceiling':used_ceiling,
+                'initial_uniform_union_ceiling':per_key_ceiling,
                 'package_ceiling':ceiling,'union_bound':'sum of key probabilities, no independence assumption',
                 'budget_and_coupled_supplier_caps':'all retained in final joint certification'}})
         if plan.solver_status!='OPTIMAL':break

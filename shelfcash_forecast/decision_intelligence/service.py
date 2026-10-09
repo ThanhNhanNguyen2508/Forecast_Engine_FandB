@@ -129,6 +129,8 @@ def _build_from_input(inputs: DecisionIntelligenceInput) -> FinalDecisionPackage
             "execution_authorized": False,
             "operational_status": inputs.optimization_result.operational_status,
             "environment": inputs.optimization_request.environment,
+            "currency": inputs.optimization_request.currency,
+            "currency_source": "BOUND_OPTIMIZATION_REQUEST",
             'planning_mode':inputs.optimization_request.planning_mode,
             'planning_binding':inputs.optimization_request.planning_binding,
             'profile_rule_coverage':inputs.optimization_request.rule_coverage,

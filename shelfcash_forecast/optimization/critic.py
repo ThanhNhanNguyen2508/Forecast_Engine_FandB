@@ -308,8 +308,8 @@ def _lot_model_mismatch(plan, physics, request, profile):
     """Compare solver states with exact states on the SAME worlds, never the superset."""
     predictions = plan.provenance.get("predicted_daily_ledgers", {})
     ids = set(plan.provenance.get("physics_scenario_ids", []))
-    if plan.solver_status != "OPTIMAL":
-        return False, {"evaluated": False, "reason": "NO_OPTIMAL_MODEL_STATES"}
+    if plan.solver_status not in {"OPTIMAL", "LIMIT_REACHED"} or not plan.provenance.get('predicted_daily_ledgers'):
+        return False, {"evaluated": False, "reason": "NO_INCUMBENT_MODEL_STATES"}
     if physics is None or {s.scenario_id for s in physics.results} != ids or not ids <= set(predictions):
         return True, {"evaluated": False, "reason": "PHYSICS_SCOPE_MISSING"}
     fields = {"beginning":"beginning_quantity", "inbound":"inbound_quantity", "expired":"expired_quantity",
@@ -381,8 +381,10 @@ def critique_procurement_plan(
     )
     warnings = list(plan.warnings)
     details: dict[str, Any] = {}
-    if plan.solver_status != "OPTIMAL":
+    if plan.solver_status != "OPTIMAL" and not (plan.solver_status == 'LIMIT_REACHED' and plan.provenance.get('has_integer_incumbent')):
         violations.append(f"SOLVER_STATUS:{plan.solver_status}")
+    elif plan.solver_status == 'LIMIT_REACHED':
+        warnings.append('FEASIBLE_INCUMBENT_OPTIMALITY_NOT_PROVEN')
     cost_keys = {(a.store_id, a.ingredient_id) for a in request.cost_assumptions}
     demand_keys = {(line.store_id, line.ingredient_id) for s in request.demand_scenarios for line in s.lines}
     known_pending = {"DEMO_CONSEQUENCE_COSTS_NOT_APPROVED"} if (

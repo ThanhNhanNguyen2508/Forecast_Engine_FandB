@@ -338,6 +338,9 @@ def adapt_unit_conversions( # func dùng để validate metadata đổi đơn v�
                 from_unit=from_unit,
                 to_unit=to_unit,
                 factor=factor,
+                evidence_id=None if pd.isna(row.get('evidence_id')) else str(row.get('evidence_id')),
+                physical_dimension_bridge=False if pd.isna(row.get('physical_dimension_bridge')) else bool(row.get('physical_dimension_bridge')),
+                canonical_base_unit=None if pd.isna(row.get('canonical_base_unit')) else str(row.get('canonical_base_unit')),
             )
         )
 

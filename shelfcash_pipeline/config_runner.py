@@ -20,16 +20,18 @@ from shelfcash_pipeline.run import run_pipeline
 
 class PipelineParameters(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
-    input_path: str | None = "demo/input"
+    input_path: str | None = None
     bundle_path: str | None = None
-    artifacts_path: str = "demo/artifacts"
-    output_root: str = "outputs"
+    artifacts_path: str
+    output_root: str
     output_prefix: str = "pipeline_until_"
-    cutoff_date: date = date(2026, 8, 12)
-    horizon: StrictInt = Field(default=7, ge=1, le=7)
+    cutoff_date: date
+    horizon: StrictInt = Field(default=7, ge=1, le=366)
+    forecast_overrides: str | None = None
+    configuration_cache_root: str | None = None
     execution_mode: Literal["demo", "backtest_replay", "production"] = "demo"
-    store_id: str = Field(default="STORE_A", min_length=1)
-    date_locale: Literal["DMY", "MDY", "YMD"] = "DMY"
+    store_id: str | None = Field(default=None, min_length=1)
+    date_locale: Literal["DMY", "MDY", "YMD"] | None = None
     scenario_count: StrictInt = Field(default=100, ge=1, le=2000)
     seed: StrictInt = 42
     optimization_mode: Literal["deterministic", "stochastic", "compare"] = "compare"
@@ -106,6 +108,9 @@ def materialize_configuration(config: RunConfiguration, engine_root: Path) -> tu
     digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
     portable = (engine_root / "pyproject.toml").is_file() and (engine_root / "shelfcash_pipeline").is_dir()
     directory = engine_root / (".runtime/configs" if portable else "codex_tests/configs/resolved_runs") / digest
+    if config.pipeline.configuration_cache_root:
+        directory=_path(config.pipeline.configuration_cache_root,engine_root)/digest
+        if not directory.resolve().is_relative_to(engine_root.resolve()):raise ValueError('CONFIGURATION_CACHE_OUTSIDE_WORKSPACE')
     _reject_reparse(directory)
     expected = {
         ".shelfcash_config.json": json.dumps({"owner": "shelfcash_single_file_runner", "sha256": digest}),
@@ -149,6 +154,7 @@ def configured_options(config: RunConfiguration, stop_after: str, *, engine_root
         context_metadata=context, planning_config=planning,
         scenario_count=params.scenario_count, seed=params.seed, optimization_mode=params.optimization_mode,
         workspace_root=engine_root,
+        forecast_overrides=_path(params.forecast_overrides,engine_root),
     )
 
 
@@ -180,10 +186,23 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         options = configured_options(config, args.stop_after, engine_root=configuration_root(args.config))
         print("CONFIG_FILE=" + str(args.config.resolve()), flush=True)
+        import shelfcash_forecast, shelfcash_preprocess
+        print("PYTHON="+sys.executable,flush=True)
+        print("CONFIG_RUNNER_ORIGIN="+str(Path(__file__).resolve()),flush=True)
+        print("FORECAST_ORIGIN="+str(shelfcash_forecast.__file__),flush=True)
+        print("PREPROCESS_ORIGIN="+str(shelfcash_preprocess.__file__),flush=True)
         output = run_pipeline(options)
         print("OUTPUT_DIR=" + str(output))
         return 0
     except Exception as exc:
+        from pydantic import ValidationError
+        invalid=isinstance(exc,ValidationError)
+        from shelfcash_forecast.optimization.input_validation import error_result
+        diagnostics=error_result({},'INVALID_INPUT' if invalid else 'SOLVER_ERROR',exc).diagnostics
+        print(json.dumps({'technical_outcome':'INVALID_INPUT' if invalid else 'SOLVER_ERROR',
+            'reason_code':'CONFIGURATION_VALIDATION_FAILED' if invalid else getattr(exc,'code',type(exc).__name__),
+            'diagnostics':[d.model_dump(mode='json') for d in diagnostics],
+            'accepted_orders':[],'accepted_zero_purchase':False},ensure_ascii=False,allow_nan=False),flush=True)
         print(f"CONFIGURED_PIPELINE_FAILED:{type(exc).__name__}:{exc}", file=sys.stderr)
         return 1
 

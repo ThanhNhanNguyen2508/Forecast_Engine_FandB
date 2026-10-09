@@ -12,9 +12,20 @@ def run(options: RunOptions, output: Path, bundle: Path) -> inference_pipeline.F
     frames = create_forecast_input_frames(
         bundle, include_weather=False, as_of_date=options.cutoff_date,
     )
+    policy=None
+    if options.forecast_overrides:
+        from shelfcash_forecast.pipeline.forecast_overrides import ForecastOverridePolicy
+        policy=ForecastOverridePolicy.model_validate_json(options.forecast_overrides.read_text(encoding='utf-8-sig'))
+        from shelfcash_preprocess.engine import load_canonical_frames
+        menu=load_canonical_frames(bundle).get('menu')
+        if menu is None:raise ValueError('COLD_START_MENU_REQUIRED')
+        registry={str(r['product_id']):str(r['unit']) for r in menu.to_dict('records')}
+        for p in policy.predictions:
+            if p.product_id not in registry or p.unit!=registry[p.product_id]:raise ValueError('COLD_START_MENU_ID_OR_UNIT_MISMATCH:'+p.product_id)
     state = inference_pipeline.predict_m1(
         frames, options.artifacts_path, options.cutoff_date, options.horizon,
         execution_mode=options.execution_mode,
+        override_policy=policy,
     )
     # Save the adapter's ACTUAL inputs (including units filled from menu).
     destination = output / "engine_inputs"

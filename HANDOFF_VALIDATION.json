@@ -4,7 +4,16 @@
   "scope": "Windows standalone source checkout; dependency environment reused for verification",
   "python_version": "3.14.4",
   "original_regression_suite": {"passed": 247, "failed": 0, "skipped": 0},
-  "checkout_local_suite": {"passed": 68, "failed": 0, "skipped": 0, "copied_existing_cases": 29, "new_cases": 39},
+  "checkout_local_suite": {"passed": 80, "failed": 0, "skipped": 0, "copied_existing_cases": 29, "new_cases": 51},
+  "memory_export_repair": {
+    "verified_on_utc": "2026-10-07",
+    "environment": "Repository .venv; Python 3.14.4 AMD64",
+    "actual_user_raw_to_m6_completed": true,
+    "customer_workbook_readback_passed": true,
+    "accepted_orders_unchanged": true,
+    "full_scenario_count": 100,
+    "serialization": "Incremental envelopes and compact native Pydantic model serialization; no full compare-envelope model_dump or Unicode JSON string"
+  },
   "git_checkout": {"autocrlf": true, "fixed_asset_files": 27, "asset_hashes_match": true},
   "raw_to_m6_observed": {
     "completed": true,

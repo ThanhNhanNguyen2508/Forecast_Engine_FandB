@@ -18,7 +18,8 @@ class ForecastPlanConfig(BaseModel):
     bundle_directory: Path
     output_directory: Path
     cutoff_date: date
-    horizon: int = Field(default=7, ge=1, le=7)
+    horizon: int = Field(default=7, ge=1, le=366)
+    forecast_overrides: Path | None = None
     seed: int = 42
     execution_mode: Literal["production", "backtest_replay", "demo"] = "production"
     train_model: bool = False
@@ -187,12 +188,17 @@ def run_forecast_plan(config: ForecastPlanConfig) -> ForecastPlanResult:
             "actual_artifact": str(artifact_dir),
         }
 
+    override_policy=None
+    if config.forecast_overrides:
+        from shelfcash_forecast.pipeline.forecast_overrides import ForecastOverridePolicy
+        override_policy=ForecastOverridePolicy.model_validate_json(config.forecast_overrides.read_text(encoding='utf-8-sig'))
     forecast = predict_demand(
         canonical,
         artifact_dir,
         config.cutoff_date.isoformat(),
         config.horizon,
         execution_mode=config.execution_mode,
+        override_policy=override_policy,
     )
     forecast_path = output / "forecast_package.json"
     _write_json(forecast_path, forecast.model_dump(mode="json"))
@@ -219,13 +225,8 @@ def run_forecast_plan(config: ForecastPlanConfig) -> ForecastPlanResult:
         _write_json(output / "application_result.json", result.model_dump(mode="json"))
         return result
 
-    ingredient = predict_ingredient_demand(
-        canonical,
-        artifact_dir,
-        config.cutoff_date.isoformat(),
-        config.horizon,
-        execution_mode=config.execution_mode,
-    )
+    from shelfcash_forecast.bom.engine import propagate_ingredient_demand
+    ingredient = propagate_ingredient_demand(forecast,canonical['recipes'],canonical.get('unit_conversions'))
     ingredient_path = output / "ingredient_demand_package.json"
     _write_json(ingredient_path, ingredient.model_dump(mode="json"))
     artifacts["ingredient_demand_package"] = str(ingredient_path)

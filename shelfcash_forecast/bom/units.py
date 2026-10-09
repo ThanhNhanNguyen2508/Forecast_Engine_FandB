@@ -115,6 +115,7 @@ class UnitConverter:
     """Deterministic built-in and ingredient-specific unit converter."""
 
     def __init__(self, rules: list[UnitConversionRule] | None = None) -> None:
+        self._bridges=set();self._canonical={}
         self._graphs: dict[str, dict[str, list[tuple[str, float]]]] = defaultdict(
             lambda: defaultdict(list)
         )
@@ -132,16 +133,25 @@ class UnitConverter:
                 "Conversion trong cùng unit phải có factor=1.",
                 details=rule.model_dump(),
             )
-        if (
+        cross_dimension=(
             source_dimension is not None
             and target_dimension is not None
             and source_dimension != target_dimension
-        ):
+        )
+        if cross_dimension and not (rule.physical_dimension_bridge and rule.evidence_id and rule.canonical_base_unit):
             raise InvalidUnitConversionError(
                 "Conversion metadata không được nối hai physical dimensions.",
                 details=rule.model_dump(),
             )
-        builtin = _builtin_factor(source, target)
+        if rule.physical_dimension_bridge:
+            if not rule.evidence_id or not rule.canonical_base_unit:raise InvalidUnitConversionError('PHYSICAL_CONVERSION_PROVENANCE_AND_BASE_UNIT_REQUIRED')
+            self._bridges.add(rule.ingredient_id)
+        if rule.canonical_base_unit:
+            canonical=normalize_unit(rule.canonical_base_unit)
+            if canonical not in {'kg','liter','unit'}:raise InvalidUnitConversionError('UNSUPPORTED_CANONICAL_BASE_UNIT')
+            if rule.ingredient_id in self._canonical and self._canonical[rule.ingredient_id]!=canonical:raise InvalidUnitConversionError('CONFLICTING_CANONICAL_BASE_UNIT')
+            self._canonical[rule.ingredient_id]=canonical
+        builtin = None if cross_dimension else _builtin_factor(source, target)
         if builtin is not None and not math.isclose(
             builtin, rule.factor, rel_tol=1e-12, abs_tol=1e-12
         ):
@@ -230,7 +240,7 @@ class UnitConverter:
                     for unit in component_units
                     if unit in UNIT_DIMENSIONS
                 }
-                if len(dimensions) > 1:
+                if len(dimensions) > 1 and ingredient_id not in self._bridges:
                     raise InvalidUnitConversionError(
                         "Conversion graph gián tiếp nối nhiều physical dimensions.",
                         details={
@@ -279,6 +289,10 @@ class UnitConverter:
 
     def canonical_unit(self, ingredient_id: str, from_unit: str) -> str:
         source = normalize_unit(from_unit)
+        if ingredient_id in self._canonical:
+            target=self._canonical[ingredient_id]
+            if self._find_factor(ingredient_id,source,target) is None:raise UnitConversionError('DECLARED_BASE_UNIT_CONVERSION_REQUIRED')
+            return target
         dimension = UNIT_DIMENSIONS.get(source)
         if dimension is not None:
             return CANONICAL_UNITS[dimension]

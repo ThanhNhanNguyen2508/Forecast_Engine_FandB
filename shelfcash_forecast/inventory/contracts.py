@@ -38,11 +38,18 @@ import math
 from datetime import date
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator, field_serializer
 
 
 class StrictInventoryContract(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+    @field_validator('*', mode='before')
+    @classmethod
+    def reject_bool_number(cls, value, info):
+        if isinstance(value, bool) and any(t in str(cls.model_fields[info.field_name].annotation) for t in ('float', 'int')):
+            raise ValueError('BOOLEAN_NOT_NUMERIC:' + info.field_name)
+        return value
 
 
 class InventoryLot(StrictInventoryContract): # lô hàng vật lý đang tổn tại trong kho
@@ -244,6 +251,10 @@ class InventorySimulationPolicy(StrictInventoryContract):
     fill_rate_target: float = Field(default=0.95, ge=0, le=1)
     trace_retention: Literal["full", "summary", "selected"] = "full" # tuỳ chỉnh 
     trace_scenario_ids: set[str] = Field(default_factory=set)
+
+    @field_serializer('trace_scenario_ids', when_used='json')
+    def serialize_trace_ids(self, value):
+        return sorted(value)
 
     @model_validator(mode="after")
     def validate_trace_selection(self) -> InventorySimulationPolicy:

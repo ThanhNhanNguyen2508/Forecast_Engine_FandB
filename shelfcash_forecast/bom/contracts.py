@@ -66,6 +66,9 @@ class UnitConversionRule(StrictBOMContract): # đổi đơn vị
     from_unit: str = Field(min_length=1)
     to_unit: str = Field(min_length=1)
     factor: float = Field(gt=0)
+    evidence_id: str | None = None
+    physical_dimension_bridge: bool = False
+    canonical_base_unit: str | None = None
 
 
 class BOMIssue(StrictBOMContract): # structured error/warning object của M3.

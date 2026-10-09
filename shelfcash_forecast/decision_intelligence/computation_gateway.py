@@ -30,7 +30,7 @@ class M5ComputationGateway:
     """Production gateway backed by the existing M5 and exact M4 path."""
 
     def optimize(self, request: OptimizationRequest) -> OptimizationResult:
-        return optimize_procurement(request)
+        return optimize_procurement(request,structured_errors=True)
 
     def evaluate_plan(
         self,

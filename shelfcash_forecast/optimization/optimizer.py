@@ -18,7 +18,7 @@ def _profiles(request):
     return [defaults[name] for name in ("LEAN","BALANCED","PROTECTED")]
 
 
-def optimize_procurement(request, *, lead_time_model=None, shelf_life_model=None):
+def _optimize_procurement(request, *, lead_time_model=None, shelf_life_model=None):
     started=time.monotonic(); profiles=_profiles(request)
     weighted=bool(request.demand_scenarios) and all(s.probability_weight is not None for s in request.demand_scenarios)
     stochastic=request.stochastic and weighted and len(request.demand_scenarios)>1
@@ -43,7 +43,7 @@ def optimize_procurement(request, *, lead_time_model=None, shelf_life_model=None
         return OptimizationResult(request_id=request.request_id,evaluations={},status="NO_VALID_PROCUREMENT_PLAN",
             technical_outcome=pf["status"],technical_feasible=False if pf["status"]=="PROVEN_INFEASIBLE" else None,
             diagnostics=pf["diagnostics"],provenance=base_provenance)
-    evaluations={};limited=False;candidate_modes={}
+    evaluations={};limited=False;candidate_modes={};full_joint_proofs=set()
     for profile in profiles:
         current=request;attempts=[];fingerprints=set();evaluation=None
         for attempt in range(request.limits.max_refinement_iterations+1):
@@ -51,6 +51,9 @@ def optimize_procurement(request, *, lead_time_model=None, shelf_life_model=None
             if remaining<=0:
                 limited=True;break
             limits={**current.limits.model_dump(),"per_solve_seconds":min(current.limits.per_solve_seconds,remaining),"total_seconds":remaining}
+            if current.candidate_generation == 'DECOMPOSED_FIXED_CERTIFICATION' and current.limits.joint_fallback:
+                limits['total_seconds'] = remaining * (1-current.limits.fallback_reserve_fraction)
+                limits['per_solve_seconds'] = min(limits['per_solve_seconds'], limits['total_seconds'])
             current=OptimizationRequest.model_validate({**current.model_dump(),"limits":limits})
             logging.getLogger(__name__).info('M5 %s %s attempt=%s worlds=%s solve',actual_mode,profile.name,attempt,len(current.demand_scenarios))
             if current.candidate_generation=='DECOMPOSED_FIXED_CERTIFICATION':
@@ -95,20 +98,65 @@ def optimize_procurement(request, *, lead_time_model=None, shelf_life_model=None
             worlds=[type(s).model_validate({**s.model_dump(),"probability_weight":s.probability_weight/mass}) for s in selected]
             current=OptimizationRequest.model_validate({**request.model_dump(),"demand_scenarios":worlds})
             record["added_scenarios"]=added;record["termination"]="ADD_EXISTING_VIOLATING_WORLDS"
+        # A restricted candidate, mean world, or subset failure is never the
+        # final feasibility search. Release EVERY purchase decision and evaluate
+        # the unchanged full pool under the original policy.
+        remaining=request.limits.total_seconds-(time.monotonic()-started)
+        if (evaluation is None or not evaluation.critic.passed) and request.limits.joint_fallback and remaining > 0:
+            from shelfcash_forecast.optimization.lot_milp import solve_lot_procurement
+            pool=request.evaluation_scenarios or request.demand_scenarios
+            joint=OptimizationRequest.model_validate({**request.model_dump(),
+                'candidate_generation':'JOINT_MILP','demand_scenarios':[s.model_dump() for s in pool],
+                'limits':{**request.limits.model_dump(),'total_seconds':remaining,
+                    'per_solve_seconds':min(request.limits.per_solve_seconds,remaining)}})
+            plan=solve_lot_procurement(joint,profile,stochastic=True,feasibility_first=True)
+            evaluation=evaluate_candidate_plan(plan,joint,profile)
+            attempts.append({'attempt':len(attempts),'phase':'FULL_POOL_UNFIXED_FEASIBILITY',
+                'request_hash':content_hash(joint),'optimization_ids':[s.scenario_id for s in pool],
+                'optimization_weights':{s.scenario_id:s.probability_weight for s in pool},
+                'plan':evaluation.plan.model_dump(mode='json'),'critic':evaluation.critic.model_dump(mode='json'),
+                'termination':'ACCEPTED_BY_EXACT_CRITIC' if evaluation.critic.passed else 'SOLVER_'+plan.solver_status,
+                'fixed_commitments':False,'original_policy_preserved':True})
+            limited |= plan.solver_status == 'LIMIT_REACHED'
+            if plan.solver_status == 'INFEASIBLE': full_joint_proofs.add(profile.name)
         if evaluation is not None:
+            candidate_actual_mode='stochastic' if evaluation.plan.provenance.get('search_phase')=='FEASIBILITY_FIRST' else actual_mode
+            candidate_fallback='FULL_POOL_UNFIXED_FEASIBILITY' if candidate_actual_mode!=actual_mode else fallback
             evaluation=CandidateEvaluation.model_validate({**evaluation.model_dump(),"requested_mode":base_provenance["requested_mode"],
-                "actual_mode":actual_mode,"fallback_reason":fallback,"attempts":attempts})
+                "actual_mode":candidate_actual_mode,"fallback_reason":candidate_fallback,"attempts":attempts})
             evaluations[profile.name]=evaluation
-            candidate_modes[profile.name]={"actual_mode":actual_mode,"solver_status":evaluation.plan.solver_status,
+            candidate_modes[profile.name]={"actual_mode":candidate_actual_mode,"solver_status":evaluation.plan.solver_status,
                                             "termination":attempts[-1]["termination"] if attempts else "TOTAL_TIME_LIMIT"}
     recommended=next((n for n in ("BALANCED","PROTECTED","LEAN") if n in evaluations and evaluations[n].critic.passed),None)
-    proven=request.candidate_generation=='JOINT_MILP' and bool(evaluations) and len(evaluations)==len(profiles) and all(
-        e.plan.solver_status=="INFEASIBLE" and set(e.attempts[-1]["optimization_ids"])=={s.scenario_id for s in (request.evaluation_scenarios or request.demand_scenarios)}
-        for e in evaluations.values())
-    outcome="FEASIBLE" if recommended else "SEARCH_LIMIT_REACHED" if limited else "PROVEN_INFEASIBLE" if proven else "REJECTED_BY_EXACT_CRITIC"
+    proven = len(full_joint_proofs) == len(profiles)
+    if recommended:base_provenance['actual_mode']=evaluations[recommended].actual_mode
+    solver_error = any(e.plan.solver_status == 'SOLVER_ERROR' for e in evaluations.values())
+    outcome="FEASIBLE" if recommended else "PROVEN_INFEASIBLE" if proven else "SOLVER_ERROR" if solver_error else "SEARCH_LIMIT_REACHED" if limited else "REJECTED_BY_EXACT_CRITIC"
     base_provenance.update(candidate_modes=candidate_modes,elapsed_seconds=time.monotonic()-started,
                            proof_scope="declared_lot_model_opportunities_profiles_and_worlds_including_deterministic_mean; not_unknown_real_supplier_semantics")
     return OptimizationResult(request_id=request.request_id,evaluations=evaluations,recommended_strategy=recommended,
         status="COMPLETED" if recommended else "NO_VALID_PROCUREMENT_PLAN",technical_outcome=outcome,
-        technical_feasible=True if recommended else None if limited else False,
+        technical_feasible=True if recommended else None if outcome in {'SEARCH_LIMIT_REACHED','SOLVER_ERROR'} else False,
         provenance=base_provenance,diagnostics=pf["diagnostics"],warnings=[fallback] if fallback else [])
+
+
+def optimize_procurement(request, *, lead_time_model=None, shelf_life_model=None, structured_errors=False):
+    """Public typed/dict boundary: invalid or unsupported input is a diagnostic result."""
+    from pydantic import ValidationError
+    from shelfcash_forecast.optimization.input_validation import validate_supported_request, error_result
+    legacy_typed=isinstance(request,OptimizationRequest)
+    try:
+        request = OptimizationRequest.model_validate(request)
+    except ValidationError as exc:
+        return error_result(request, 'INVALID_INPUT', exc)
+    try:
+        issues = validate_supported_request(request)
+        if issues:
+            return OptimizationResult(request_id=request.request_id,evaluations={},status='NO_VALID_PROCUREMENT_PLAN',
+                technical_outcome='BLOCKED_INPUT_SEMANTICS' if any(d.reason_code in {'SUPPLY_CHRONOLOGY_REQUIRED','UNIT_CONVERSION_REQUIRED'} for d in issues) else 'UNSUPPORTED_INPUT',diagnostics=issues)
+        return _optimize_procurement(request,lead_time_model=lead_time_model,shelf_life_model=shelf_life_model)
+    except OptimizationNotAvailableError as exc:
+        if legacy_typed and not structured_errors:raise
+        return error_result(request,'UNSUPPORTED_INPUT',exc)
+    except (ValueError, RuntimeError, ArithmeticError) as exc:
+        return error_result(request,'SOLVER_ERROR',exc)

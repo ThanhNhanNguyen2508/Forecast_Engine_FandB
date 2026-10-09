@@ -16,7 +16,7 @@ from shelfcash_forecast.optimization.contracts import OptimizationRequest
 
 class IntentNormalizeAgent:
     def normalize(self, question: str) -> AgentIntent:
-        text = question.casefold()
+        text = question.casefold().replace("what-if", "what if")
         if any(term in text for term in ("approve", "reject", "phê duyệt", "từ chối")):
             return "APPROVAL"
         if any(term in text for term in ("regret", "hối tiếc")):
@@ -61,6 +61,16 @@ class ScenarioWhatIfAgent:
         idempotency_key: str,
     ) -> WhatIfDraft:
         normalized_question = question.casefold()
+        if "toàn bộ nguyên liệu" in normalized_question:
+            from shelfcash_forecast.decision_intelligence.what_if.rules import parse_demand_rule, expand_demand_rule
+            parsed = parse_demand_rule(question)
+            if parsed.rule is None:
+                return WhatIfDraft(status="NEEDS_CLARIFICATION" if parsed.status in {"INVALID", "NEEDS_CLARIFICATION"}
+                                   else "NOT_SUPPORTED", ambiguities=parsed.reason_codes,
+                                   confirmation_required=True)
+            return draft_what_if(baseline_request, baseline_decision,
+                expand_demand_rule(parsed.rule, baseline_request), actor=actor, reason=reason,
+                idempotency_key=idempotency_key)
         unsupported = [
             label
             for label, terms in (

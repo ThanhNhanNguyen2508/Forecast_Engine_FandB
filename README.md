@@ -44,9 +44,13 @@ Mỗi lần chạy từ raw input đến mốc chọn; M6 giải thích kết qu
 
 Output: `outputs/pipeline_until_<mốc>/`. Chạy lại cùng mốc thay output của chính mốc đó,
 theo owner/lock/path guards. Output và `.runtime` bị Git ignore.
-M5 accepted tự xuất `m5/customer_plan/`: XLSX, CSV, JSON, Markdown, conditions và ledger chuối.
+M5 xuất `m5/customer_plan/`: XLSX, CSV, JSON, Markdown, conditions, daily inventory ledger và terminal expiry cho các thực thể applicable. Accepted zero-purchase có đủ gói; trường hợp chưa accepted xuất diagnostics, không gắn nhãn zero-purchase.
+Ví dụ sau `-StopAfter m6`, mở `outputs/pipeline_until_m6/m5/customer_plan/customer_procurement_plan.xlsx`.
+Kết quả JSON lớn được ghi theo từng phần/model để giảm bộ nhớ; vẫn giữ đầy đủ nội dung đánh giá.
 Advanced CLI `shelfcash-pipeline` giữ default `codex_tests/runs/` tương đối trong checkout;
 thư mục này cũng bị Git ignore. Root `run.ps1` dùng `output_root` trong cấu hình.
+
+Contract tổng quát, cold-start, giới hạn search và status ở [SUPPORTED_INPUT_CONTRACT.md](SUPPORTED_INPUT_CONTRACT.md). Public typed service, What-if, migration và BE/FE ở [BE_FE_HANDOFF_VI.md](BE_FE_HANDOFF_VI.md); schema/examples ở `schemas/generalization_v2`. Cấu hình DEMO/P6 v3 trong repo là ví dụ có assumptions, không phải facts mặc định cho khách hàng mới. Generic profile builder yêu cầu scoped occupancy/pack/price/calendar registries có provenance. Để giữ historical outputs, tạo cấu hình với `pipeline.output_root` mới và chạy `run.ps1 -ConfigFile <file> -StopAfter m6`.
 
 ## Chỉnh tham số tại một file
 
@@ -90,6 +94,18 @@ SUPPLIER_OFFER,INVENTORY_LOT,CONSEQUENCE_COST,INVENTORY_POLICY,STRATEGY_PROFILE,
 What-if tính lại qua public M5/exact simulator/critic, giữ baseline và xuất comparison JSON
 trong `outputs/what_if_<timestamp_id>/`; không tự xuất customer workbook hoặc gửi supplier PO.
 What-if không recompute forecast/BOM. Cần raw/context mới nếu thay factual forecast origin hoặc recipes.
+
+Rule-based global ingredient demand có CLI riêng, đi qua registry draft/execute/comparison hiện có:
+
+```powershell
+python -B -m shelfcash_pipeline.demand_what_if --baseline outputs/pipeline_until_m6 --output outputs/whatif_new_run --multiplier 1.1 --scope ALL_BASELINE_INGREDIENT_DEMAND --execute-hypothetical --deny-network --actor reviewer --reason hypothetical_only --idempotency-key new_run
+```
+
+Bỏ `--execute-hypothetical` để chỉ tạo typed draft. `--text` nhận ba dạng scope toàn bộ kỳ: “bằng 1.1 lần baseline”, “tăng ... 10%”, “nhân 1,1”.
+CLI giữ pool/world weights, facts và policies; export ghi parent lineage và transformed profile, không rebuild từ raw.
+Nó cũng exact-evaluate kế hoạch cũ trên nhu cầu mới để đối chiếu. `business_ready` và `execution_authorized` vẫn false.
+Decomposition thử phân bổ đều union-risk trước; nếu projection INFEASIBLE, có tối đa một retry với trần của strategy gốc.
+Joint fixed certification và exact critic vẫn kiểm tra toàn bộ ràng buộc gốc; retry không chứng minh global cost optimum hoặc infeasibility của bài toán đầy đủ.
 
 ## Python API
 

@@ -31,6 +31,25 @@ def normalize_modifications(
     hashes = [key for key, _ in keyed]
     if len(hashes) != len(set(hashes)):
         raise MutationError("M6_WHAT_IF_DUPLICATE_MODIFICATION", "duplicate modification")
+    demands = [m for m in modifications if isinstance(m, DemandScaleModification)]
+    for i, left in enumerate(demands):
+        for right in demands[i + 1:]:
+            if all(getattr(left.selector, k) is None or getattr(right.selector, k) is None
+                   or getattr(left.selector, k) == getattr(right.selector, k)
+                   for k in ("scenario_id", "store_id", "ingredient_id", "unit", "target_date")):
+                raise MutationError("M6_WHAT_IF_OVERLAPPING_DEMAND_CHANGES", "logical demand line may only be scaled once")
+    targets = []
+    for item in modifications:
+        if isinstance(item, DemandScaleModification):
+            continue
+        identity = next((getattr(item, k) for k in ("offer_id", "lot_id", "strategy", "stress_id")
+                         if hasattr(item, k)), None)
+        if isinstance(item, ConsequenceCostModification):
+            identity = (item.store_id, item.ingredient_id, item.unit)
+        target = (item.modification_type, identity)
+        if target in targets:
+            raise MutationError("M6_WHAT_IF_CONFLICTING_CHANGES", "multiple changes to the same target")
+        targets.append(target)
     return [item for _, item in sorted(keyed, key=lambda pair: pair[0])]
 
 
@@ -61,7 +80,7 @@ def _apply_demand(data: dict[str, Any], modification: DemandScaleModification) -
             if selector.target_date is not None and line["target_date"] != selector.target_date:
                 continue
             matches.append(line)
-    if len(matches) != selector.expected_matches:
+    if selector.scope!='ALL_APPLICABLE_DEMAND' and len(matches) != selector.expected_matches:
         code = "ZERO_MATCH" if not matches else "CARDINALITY_MISMATCH"
         raise MutationError(
             f"M6_WHAT_IF_DEMAND_SELECTOR_{code}",
@@ -220,7 +239,8 @@ def apply_modifications(
 ) -> OptimizationRequest:
     """Clone, mutate allowlisted fields, then run the original strict request validator."""
 
-    data = baseline.model_dump(mode="python")
+    import copy
+    data = copy.deepcopy(baseline.model_dump(mode="python"))
     data["request_id"] = hypothetical_request_id
     for modification in normalize_modifications(modifications):
         if isinstance(modification, DemandScaleModification):

@@ -2,9 +2,9 @@
 .SYNOPSIS
 Run the offline ShelfCash pipeline, stopping at a chosen milestone.
 .EXAMPLE
-& .\source_code\shelfcash_pipeline\run.ps1 -StopAfter m1
+& .\source_code\run.ps1 -ConfigFile .\source_code\shelfcash.config.json -StopAfter m1
 .EXAMPLE
-& .\source_code\shelfcash_pipeline\run.ps1 -BundlePath 'C:\path\to\bundle' -StopAfter m2
+& .\source_code\shelfcash_pipeline\run.ps1 -BundlePath 'C:\path\to\bundle' -ArtifactsPath 'C:\path\to\artifacts' -CutoffDate '2028-02-28' -StopAfter m2
 .NOTES
 WRITES / OVERWRITES MANAGED OUTPUT. Loads fixed artifacts; never trains or promotes.
 #>
@@ -16,15 +16,16 @@ param(
     [string]$BundlePath,
     [string]$ArtifactsPath,
     [string]$OutputDir,
-    [string]$CutoffDate = '2026-08-12',
+    [string]$CutoffDate,
     [int]$Horizon = 7,
     [ValidateSet('demo', 'backtest_replay', 'production')]
     [string]$ExecutionMode = 'demo',
-    [string]$StoreId = 'STORE_A',
+    [string]$StoreId,
     [ValidateSet('DMY', 'MDY', 'YMD')]
-    [string]$DateLocale = 'DMY',
+    [string]$DateLocale,
     [string]$ContextMetadataFile,
     [string]$PlanningConfig,
+    [string]$ForecastOverrides,
     [ValidateRange(1, 2000)]
     [int]$ScenarioCount = 100,
     [int]$Seed = 42,
@@ -38,7 +39,7 @@ $ErrorActionPreference = 'Stop'
 $StopAfter = $StopAfter.ToLowerInvariant()
 $ExecutionMode = $ExecutionMode.ToLowerInvariant()
 $OptimizationMode = $OptimizationMode.ToLowerInvariant()
-$DateLocale = $DateLocale.ToUpperInvariant()
+if ($DateLocale) {$DateLocale = $DateLocale.ToUpperInvariant()}
 $PipelineRepositoryRoot = Split-Path -Parent $PSScriptRoot
 $PipelineEngineRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $PipelineSourceRoot = Join-Path $PipelineEngineRoot 'source_code'
@@ -62,17 +63,21 @@ $PipelineArgs = @('-B', '-m', 'shelfcash_pipeline')
 if ($Help) {
     $PipelineArgs += '--help'
 } else {
+    if (-not $CutoffDate) {throw 'PIPELINE_CUTOFF_REQUIRED: supply -CutoffDate (YYYY-MM-DD)'}
+    if (-not $InputPath -and -not $BundlePath) {throw 'PIPELINE_INPUT_REQUIRED: supply -InputPath or -BundlePath'}
     $PipelineArgs += @('--stop-after', $StopAfter, '--cutoff-date', $CutoffDate,
         '--horizon', [string]$Horizon, '--execution-mode', $ExecutionMode,
-        '--store-id', $StoreId, '--date-locale', $DateLocale,
         '--scenario-count', [string]$ScenarioCount, '--seed', [string]$Seed,
         '--optimization-mode', $OptimizationMode)
+    if ($StoreId) {$PipelineArgs += @('--store-id', $StoreId)}
+    if ($DateLocale) {$PipelineArgs += @('--date-locale', $DateLocale)}
     if ($InputPath) { $PipelineArgs += @('--input', $InputPath) }
     if ($BundlePath) { $PipelineArgs += @('--bundle', $BundlePath) }
     if ($ArtifactsPath) { $PipelineArgs += @('--artifacts', $ArtifactsPath) }
     if ($OutputDir) { $PipelineArgs += @('--output-dir', $OutputDir) }
     if ($ContextMetadataFile) { $PipelineArgs += @('--context-metadata', $ContextMetadataFile) }
     if ($PlanningConfig) { $PipelineArgs += @('--planning-config', $PlanningConfig) }
+    if ($ForecastOverrides) { $PipelineArgs += @('--forecast-overrides', $ForecastOverrides) }
 }
 
 $PreviousPythonPath = $env:PYTHONPATH

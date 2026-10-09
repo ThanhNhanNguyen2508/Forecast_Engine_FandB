@@ -78,7 +78,7 @@ def _trusted_text(claims: list[ComparativeClaim]) -> str:
             )
         elif claim.claim_type in {"first_stage_order_delta", "scenario_recourse_order_delta"}:
             label = (
-                "Immediate order"
+                "Committed order"
                 if claim.claim_type.startswith("first")
                 else "Conditional recourse"
             )

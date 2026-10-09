@@ -210,6 +210,19 @@ def demand_target_units(
     return units
 
 
+def canonical_demand_scenarios(scenarios, converter):
+    """Use physical base units without changing world identities or weights."""
+    output = []
+    for scenario in scenarios:
+        lines = []
+        for line in scenario.lines:
+            unit = converter.canonical_unit(line.ingredient_id, line.unit)
+            lines.append(type(line).model_validate({**line.model_dump(),
+                'quantity': converter.convert(line.quantity, line.unit, unit, ingredient_id=line.ingredient_id), 'unit': unit}))
+        output.append(type(scenario).model_validate({**scenario.model_dump(), 'lines': lines}))
+    return output
+
+
 def _destination_unit(
     store_id: str,
     ingredient_id: str,

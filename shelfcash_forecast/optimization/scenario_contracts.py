@@ -33,7 +33,7 @@ KNOWN_OPTIONS={'U01':{'RECEIVING','ORDER','DISPATCH','NEGOTIATED'},
     'U02':{'CALENDAR_ORDER','BUSINESS_NEXT','AFTER_DEMAND','EXPEDITED'},
     'U03':{'NO_EXCEPTIONS','SCOPED_WORKING'},'U04':{'PEAK_GLOBAL','EOD_MAX','COMPARTMENTS'},
     'U05':{'ADVISORY_RESERVE','SOFT_RESERVE','HARD_RESERVE','FRESH_RECEIVING','CHANCE_UNIVERSAL'},
-    'U06':{'MATCHA_PACK','MATCHA_KG'},'U07':{'BASE_PRICE_LINE_FEE','BASE_PRICE_GROUP_FEE','PACK_PRICE','EXPLICIT_FREE'}}
+    'U06':{'MATCHA_PACK','MATCHA_KG','SCOPED_PACK_COUNT','SCOPED_BASE_QUANTITY'},'U07':{'BASE_PRICE_LINE_FEE','BASE_PRICE_GROUP_FEE','PACK_PRICE','EXPLICIT_FREE'}}
 
 
 class SemanticsOption(ScenarioContract):
@@ -171,6 +171,10 @@ class NormalizedBusinessRule(ScenarioContract):
 
     @model_validator(mode='after')
     def valid_dimensions(self):
+        if self.semantics=='GLOBAL_RECEIVING_PEAK' and self.ingredient_id is not None:
+            raise ValueError('GLOBAL_RULE_REQUIRES_STORE_SCOPE')
+        if self.semantics not in {'GLOBAL_RECEIVING_PEAK','PER_KEY_EXPECTED_FILL'} and self.ingredient_id is None:
+            raise ValueError('PER_KEY_RULE_REQUIRES_INGREDIENT_SCOPE')
         if self.effective_to and self.effective_from and self.effective_to < self.effective_from:
             raise ValueError('INVALID_RULE_INTERVAL')
         if self.semantics == 'PER_KEY_EXPECTED_FILL' and (self.unit != 'ratio' or self.target > 1):

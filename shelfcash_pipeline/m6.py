@@ -20,7 +20,7 @@ def run(output: Path, forecast: ForecastPackage, ingredient: IngredientDemandPac
     )
     destination = output / "m6"
     destination.mkdir(exist_ok=False)
-    write_json(destination / "decision_package.json", decision.model_dump(mode="json"))
+    write_json(destination / "decision_package.json", decision)
     write_json(destination / "summary.json", {
         "selected_optimization_mode": optimization.selected_mode,
         "decision_status": decision.decision_status,

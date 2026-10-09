@@ -7,6 +7,7 @@ param(
     [Parameter(ParameterSetName='WhatIf',Mandatory=$true)][switch]$WhatIf,
     [Parameter(ParameterSetName='WhatIf')][string]$BaselineDir,
     [string]$ConfigFile,
+    [Parameter(ParameterSetName='WhatIf')][string]$OutputRoot,
     [string]$Python,
     [switch]$ValidateOnly,
     [switch]$Help
@@ -35,6 +36,7 @@ if ($Help) { $Arguments += '--help' } else {
     if ($WhatIf) {
         if (-not $BaselineDir) { $BaselineDir = Join-Path $PSScriptRoot 'outputs\pipeline_until_m6' }
         $Arguments += @('--baseline',([System.IO.Path]::GetFullPath($BaselineDir)))
+        if ($OutputRoot) { $Arguments += @('--output-root',([System.IO.Path]::GetFullPath($OutputRoot))) }
     } else { $Arguments += @('--stop-after',$StopAfter.ToLowerInvariant()) }
     if ($ValidateOnly) { $Arguments += '--validate-only' }
 }

@@ -69,6 +69,7 @@ def predict_ingredient_demand_scenarios(
     yield_loss_minimum_samples: int = 3,
     yield_loss_strict: bool = False,
     execution_mode: str = "production",
+    override_policy=None,
 ) -> IngredientDemandScenarioBundle:
     """Forecast, generate joint product scenarios, then apply BOM per scenario."""
 
@@ -83,6 +84,7 @@ def predict_ingredient_demand_scenarios(
         cutoff_date=cutoff_date,
         forecast_horizon=forecast_horizon,
         execution_mode=execution_mode,
+        override_policy=override_policy,
     )
     residual_history = load_residual_history(artifact_directory)
     product_scenarios = generate_product_demand_scenarios(

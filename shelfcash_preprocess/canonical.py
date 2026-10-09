@@ -53,28 +53,32 @@ class EntityRegistry:
         self.products: dict[str, str] = {}
         self.ingredients: dict[str, str] = {}
         self.conflicts: list[str] = []
+        self.candidates: dict[tuple[str,str],set[str]] = {}
 
     def _add(self, collection: dict[str, str], prefix: str, name: Any, identifier: Any = None) -> str:
         key = _entity_key(name)
         value = _text(identifier) or _stable_id(prefix, name)
-        previous = collection.get(key)
-        if previous and previous != value:
-            self.conflicts.append(f"{prefix}_ID_CONFLICT:{name}:{previous}:{value}")
-        else:
-            collection[key] = value
-        return collection.get(key, value)
+        choices=self.candidates.setdefault((prefix,key),set())
+        if identifier is None and choices:
+            if len(choices)>1:
+                self.conflicts.append(f'{prefix}_AMBIGUOUS_NAME_REQUIRES_ID:{name}:{sorted(choices)}')
+                return value
+            return next(iter(choices))
+        choices.add(value)
+        collection[key]=value
+        return value
 
     def add_product(self, name: Any, identifier: Any = None) -> str:
         return self._add(self.products, "PRD", name, identifier)
 
-    def product(self, name: Any) -> str:
-        return self.products.get(_entity_key(name)) or self.add_product(name)
+    def product(self, name: Any, identifier: Any=None) -> str:
+        return self.add_product(name,identifier)
 
     def add_ingredient(self, name: Any, identifier: Any = None) -> str:
         return self._add(self.ingredients, "ING", name, identifier)
 
-    def ingredient(self, name: Any) -> str:
-        return self.ingredients.get(_entity_key(name)) or self.add_ingredient(name)
+    def ingredient(self, name: Any, identifier: Any=None) -> str:
+        return self.add_ingredient(name,identifier)
 
 
 class CanonicalTransformer:
@@ -398,7 +402,7 @@ class CanonicalTransformer:
             yqty = self._number(self._value(row, m, "yield_quantity"), region, sr, "yield_quantity")
             if not product or not ingredient or not version or not start or qty is None or yqty is None:
                 continue
-            product_id, ingredient_id = self.registry.product(product), self.registry.ingredient(ingredient)
+            product_id, ingredient_id = self.registry.product(product,self._value(row,m,'product_id')), self.registry.ingredient(ingredient,self._value(row,m,'ingredient_id'))
             self._emit(records, {
                 "recipe_id": _text(self._value(row, m, "recipe_id")) or _stable_id("RCP", f"{product_id}|{version}|{start}"),
                 "product_id": product_id, "product_name": product, "ingredient_id": ingredient_id,
@@ -424,7 +428,7 @@ class CanonicalTransformer:
             if name and dt and qty is not None and store:
                 self._emit(records, {
                     "date": dt, "store_id": store,
-                    "ingredient_id": self.registry.ingredient(name),
+                    "ingredient_id": self.registry.ingredient(name,self._value(row,m,'ingredient_id')),
                     "ingredient_name": name, "actual_usage_quantity": qty,
                     "unit": normalize_unit(self._value(row, m, "unit")),
                     "waste_quantity": self._number(self._value(row, m, "waste_quantity"), region, sr, "waste_quantity"),
@@ -444,7 +448,7 @@ class CanonicalTransformer:
             if name and snap and qty is not None and store:
                 self._emit(records, {
                     "snapshot_date": snap, "store_id": store,
-                    "ingredient_id": self.registry.ingredient(name),
+                    "ingredient_id": self.registry.ingredient(name,self._value(row,m,'ingredient_id')),
                     "ingredient_name": name, "quantity_remaining": qty,
                     "unit": normalize_unit(self._value(row, m, "unit")),
                     "expiry_date": self._date(self._value(row, m, "expiry_date"), region, sr, "expiry_date"),
@@ -465,7 +469,7 @@ class CanonicalTransformer:
                 self._emit(records, {
                     "document_date": self._date(self._value(row, m, "document_date"), region, sr, "document_date"),
                     "received_date": received,
-                    "ingredient_id": self.registry.ingredient(name), "ingredient_name": name,
+                    "ingredient_id": self.registry.ingredient(name,self._value(row,m,'ingredient_id')), "ingredient_name": name,
                     "quantity": qty, "unit": normalize_unit(self._value(row, m, "unit")),
                     "unit_price": self._number(self._value(row, m, "unit_price"), region, sr, "unit_price"),
                     "line_amount": self._number(self._value(row, m, "line_amount"), region, sr, "line_amount"),
@@ -484,14 +488,14 @@ class CanonicalTransformer:
             if name:
                 self._emit(records, {
                     "supplier_id": _text(self._value(row, m, "supplier_id")),
-                    "ingredient_id": self.registry.ingredient(name), "ingredient_name": name,
+                    "ingredient_id": self.registry.ingredient(name,self._value(row,m,'ingredient_id')), "ingredient_name": name,
                     "minimum_order_quantity": self._number(self._value(row, m, "minimum_order_quantity"), region, sr, "minimum_order_quantity"),
                     "order_unit": normalize_unit(self._value(row, m, "order_unit")),
                     "pack_size": self._number(self._value(row, m, "pack_size"), region, sr, "pack_size"),
                     "unit": normalize_unit(self._value(row, m, "unit")),
                     "lead_time_days": self._number(self._value(row, m, "lead_time_days"), region, sr, "lead_time_days"),
                     "unit_price": self._number(self._value(row, m, "unit_price"), region, sr, "unit_price"),
-                    "price_basis": "base_unit",
+                    "price_basis": _text(self._value(row,m,'price_basis')) or 'base_unit',
                     "delivery_schedule": _text(self._value(row, m, "delivery_schedule")),
                     "shelf_life_days": self._number(self._value(row, m, "shelf_life_days"), region, sr, "shelf_life_days"),
                 }, region, sr, source_columns=list(m.values()))

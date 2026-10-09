@@ -108,7 +108,7 @@ def _validate_m5_authority(package: WhatIfDecisionPackage) -> None:
     result = package.optimization_result
     recommended = result.recommended_strategy
     if recommended is None:
-        if package.hypothetical_decision.immediate_orders:
+        if package.hypothetical_decision.immediate_orders or package.hypothetical_decision.scheduled_orders:
             raise WhatIfError("M6_WHAT_IF_NO_VALID_PLAN_HAS_ORDERS", "fallback orders forbidden")
         return
     evaluation = result.evaluations.get(recommended)
@@ -118,6 +118,12 @@ def _validate_m5_authority(package: WhatIfDecisionPackage) -> None:
         raise WhatIfError("M6_WHAT_IF_RECOMMENDATION_NOT_VALIDATED", "critic did not pass")
     if evaluation.simulation is None:
         raise WhatIfError("M6_WHAT_IF_EXACT_M4_MISSING", "exact simulation is required")
+    full = package.modified_request.evaluation_scenarios or package.modified_request.demand_scenarios
+    if (len(evaluation.simulation.results) != len(full)
+            or {w.scenario_id: w.probability_weight for w in evaluation.simulation.results}
+            != {w.scenario_id: w.probability_weight for w in full}
+            or not evaluation.critic.checks.get("evaluation_coverage")):
+        raise WhatIfError("M6_WHAT_IF_EXACT_M4_COVERAGE_MISMATCH", "full declared worlds and weights required")
 
 
 def run_what_if(
@@ -142,6 +148,7 @@ def run_what_if(
     modified_request_hash = optimization_request_hash(modified_request)
     selected_gateway = gateway or M5ComputationGateway()
     result = selected_gateway.optimize(modified_request)
+    three_way=_three_way_evaluation(baseline_request,baseline_decision,modified_request,result,selected_gateway)
     hypothetical_decision = build_final_decision_package(modified_request, result)
     comparison = compare_decisions(baseline_decision, hypothetical_decision)
     evidence = build_comparative_evidence(
@@ -218,10 +225,53 @@ def run_what_if(
             "causal_claim": False,
             "m5_decision_authority_preserved": True,
             "computation_gateway_calls": 1,
+            'three_way_comparison':three_way,
         },
     )
     _validate_m5_authority(package)
     return package
+
+
+def _three_way_evaluation(baseline_request,baseline_decision,modified_request,result,gateway):
+    """Re-evaluate the sealed parent schedule; no quantity scaling or reoptimization."""
+    from shelfcash_forecast.optimization.contracts import ProcurementPlan,ProcurementDecisionLine
+    from shelfcash_forecast.optimization.planning_service import content_hash
+    summary=baseline_decision.recommended_plan_summary
+    if summary is None:
+        return {'status':'NO_ACCEPTED_PARENT','old_on_old':None,'old_on_modified':None,
+            'new_on_modified':_evaluation_snapshot(result.evaluations.get(result.recommended_strategy),modified_request)}
+    offers={o.offer_id:o for o in baseline_request.supplier_offers};orders=[]
+    for order in [*baseline_decision.immediate_orders,*baseline_decision.scheduled_orders]:
+        offer=offers[order.offer_id]
+        orders.append(ProcurementDecisionLine(**{k:getattr(order,k) for k in ('offer_id','supplier_id','store_id','ingredient_id','unit',
+            'order_date','arrival_date','pack_count','order_quantity','purchase_cost','delivery_cost','emergency')},
+            pack_size=offer.pack_size,unit_price=offer.unit_price,shelf_life_days=offer.shelf_life_days))
+    plan=ProcurementPlan(plan_id=summary.plan_id,strategy=summary.strategy,orders=orders,purchase_cost=sum(o.purchase_cost+o.delivery_cost for o in orders),
+        solver_status='OPTIMAL',provenance={'purpose':'FIXED_ACCEPTED_PARENT_SCHEDULE_EVALUATION','mode':'stochastic',
+            'planning_binding':baseline_request.planning_binding,'not_optimizer_output':True})
+    old=gateway.evaluate_plan(plan,baseline_request)
+    rebound=plan.model_copy(update={'plan_id':modified_request.request_id+'-parent-fixed','provenance':{
+        **plan.provenance,'planning_binding':modified_request.planning_binding}})
+    changed=gateway.evaluate_plan(rebound,modified_request)
+    return {'status':'COMPUTED','parent_orders_hash':content_hash(orders),'modified_evaluation_orders_hash':content_hash(rebound.orders),
+        'physical_parent_orders_preserved':content_hash(orders)==content_hash(rebound.orders),
+        'old_on_old':_evaluation_snapshot(old,baseline_request),'old_on_modified':_evaluation_snapshot(changed,modified_request),
+        'new_on_modified':_evaluation_snapshot(result.evaluations.get(result.recommended_strategy),modified_request),
+        'comparison_2_3_same_pool_hash':content_hash(modified_request.evaluation_scenarios or modified_request.demand_scenarios),
+        'optimizer_calls':1,'fixed_plan_exact_evaluation_calls':2}
+
+
+def _evaluation_snapshot(e,request):
+    from shelfcash_forecast.optimization.planning_service import content_hash
+    if e is None:return {'status':'NO_ACCEPTED_PLAN','metrics':None}
+    return {'status':'PASS' if e.critic.passed else 'REJECTED_BY_EXACT_CRITIC','plan_id':e.plan.plan_id,
+        'procurement_cash':sum(o.purchase_cost+o.delivery_cost for o in e.plan.orders),'critic':e.critic.model_dump(mode='json'),
+        'worlds_hash':content_hash(request.evaluation_scenarios or request.demand_scenarios),
+        'world_ids_weights':{s.scenario_id:s.probability_weight for s in (request.evaluation_scenarios or request.demand_scenarios)},
+        'metrics':e.simulation.risk_metrics.model_dump(mode='json') if e.simulation and e.simulation.risk_metrics else None,
+        'ledger_hash':content_hash([l.model_dump(mode='json') for s in e.simulation.results for l in s.daily_ledgers]) if e.simulation else None,
+        'capacity_peak_by_key':{f'{k.store_id}|{k.ingredient_id}|{k.unit}':max(l.maximum_quantity for w in e.simulation.results for l in w.daily_ledgers
+            if (l.store_id,l.ingredient_id,l.unit)==(k.store_id,k.ingredient_id,k.unit)) for k in e.simulation.risk_metrics.by_key} if e.simulation and e.simulation.risk_metrics else {}}
 
 
 __all__ = [

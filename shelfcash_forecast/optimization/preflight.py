@@ -11,6 +11,11 @@ from shelfcash_forecast.exceptions import BOMError
 
 def preflight(request, profiles):
     diagnostics=list(request.blocked_issues)
+    if request.normalized_rules and any(s.probability_weight is None for s in (request.evaluation_scenarios or request.demand_scenarios)):
+        diagnostics.append(ProcurementDiagnostic(reason_code='NORMALIZED_RULES_REQUIRE_DECLARED_WORLD_WEIGHTS',proof_status='BLOCKED',
+            field_paths=['evaluation_scenarios.probability_weight','demand_scenarios.probability_weight'],
+            expected_meaning='normalized rule reports and expected-fill/soft losses require explicit nonnegative world weights summing to one',
+            action_required=['DECLARE_SCENARIO_WEIGHT_SEMANTICS']))
     if not request.demand_scenarios:
         diagnostics.append(ProcurementDiagnostic(reason_code="DEMAND_SCOPE_REQUIRED",proof_status="BLOCKED"))
     if request.stress_base_scenario_id is not None and request.stress_base_scenario_id not in {
@@ -48,6 +53,8 @@ def preflight(request, profiles):
             diagnostics.append(ProcurementDiagnostic(reason_code="UNKNOWN_CONSTRAINT:"+name,proof_status="BLOCKED"))
     targets={(l.store_id,l.ingredient_id):l.unit for s in request.demand_scenarios for l in s.lines}
     converter=UnitConverter(request.unit_conversions)
+    for row in [*request.initial_inventory,*request.existing_inbound,*request.supplier_offers]:
+        targets.setdefault((row.store_id,row.ingredient_id),converter.canonical_unit(row.ingredient_id,row.unit))
     for rule in request.normalized_rules:
         if rule.semantics=='GLOBAL_RECEIVING_PEAK':
             coefficients={c.ingredient_id:c for c in rule.occupancy}
@@ -55,6 +62,8 @@ def preflight(request, profiles):
             missing=[k[1] for k,u in scoped.items() if k[1] not in coefficients or
                      coefficients[k[1]].base_unit!=converter.canonical_unit(k[1],u)]
             if missing:diagnostics.append(ProcurementDiagnostic(reason_code='GLOBAL_OCCUPANCY_COVERAGE_OR_UNIT_MISMATCH',proof_status='BLOCKED',
+                field_paths=['normalized_rules.'+rule.rule_id+'.occupancy'],store_id=rule.store_id,
+                expected_meaning='all storage keys, including zero-demand initial/inbound inventory, require scoped liters/base-unit',
                 details={'rule_id':rule.rule_id,'missing_keys':missing}))
     for row in [*request.initial_inventory,*request.existing_inbound,*request.supplier_offers,*request.cost_assumptions]:
         key=(row.store_id,row.ingredient_id)
@@ -66,6 +75,13 @@ def preflight(request, profiles):
                 store_id=row.store_id,ingredient_id=row.ingredient_id,unit=row.unit,
                 details={"target_unit":targets[key],"error":str(exc)},action_required=["PROVIDE_SCOPED_UNIT_CONVERSION"]))
     if any(d.proof_status=="BLOCKED" for d in diagnostics):
+        fields={'CALENDAR_SEMANTICS_REQUIRED':'supplier_calendar','PRICE_BASIS_CONFIRMATION_REQUIRED':'price_basis_mappings',
+            'DELIVERY_FEE_MISSING':'delivery_cost_assumption','MOQ_MAPPING_REQUIRED':'packaging_mappings',
+            'UNKNOWN_EXPIRY_REQUIRED':'initial_inventory.expiry_date','BOD_SNAPSHOT_NOT_SUPPORTED':'inventory_snapshot_boundary',
+            'RECOURSE_POLICY_NOT_SUPPORTED':'supplier_offers.emergency','DEMAND_SCOPE_REQUIRED':'demand_scenarios',
+            'INBOUND_BEFORE_TRANSITION_MUST_BE_IN_SNAPSHOT':'existing_inbound.arrival_date'}
+        diagnostics=[d.model_copy(update={'field_paths':d.field_paths or [fields.get(d.reason_code,'blocked_issues.'+str(i))],
+            'expected_meaning':d.expected_meaning or '; '.join(d.action_required) or d.reason_code}) for i,d in enumerate(diagnostics)]
         return {"status":"BLOCKED_INPUT_SEMANTICS","diagnostics":diagnostics,"infeasible_profiles":[],"proof_scope":"unresolved_input_not_physical_infeasibility"}
     converter=UnitConverter(request.unit_conversions);worlds=request.evaluation_scenarios or request.demand_scenarios
     bounds=defaultdict(float);totals=defaultdict(float);stockout_worlds=set()

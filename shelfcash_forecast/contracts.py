@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class StrictContract(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid",allow_inf_nan=False)
 
 
 class ForecastPrediction(StrictContract):
@@ -25,6 +25,8 @@ class ForecastPrediction(StrictContract):
     baseline_p50: float = Field(ge=0)
     calibration_source: str
     warnings: list[str] = Field(default_factory=list)
+    forecast_method: str = 'FIXED_LIGHTGBM_POINT_CQR'
+    provenance: dict[str,Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def validate_ordering(self) -> ForecastPrediction:
@@ -41,6 +43,7 @@ class ForecastPackage(StrictContract):
     model_version: str
     predictions: list[ForecastPrediction]
     warnings: list[str] = Field(default_factory=list)
+    scenario_assumptions: dict[str,Any] = Field(default_factory=dict)
 
 
 class TrainingResult(StrictContract):

@@ -186,7 +186,7 @@ def _consequence_metric(decision: FinalDecisionPackage) -> MetricSnapshot:
     return _metric(
         "exact_m4_expected_consequence_cost",
         value,
-        unit="monetary_unit_unspecified",
+        unit=decision.provenance.get('currency') or "monetary_unit_unspecified",
         grain="recommended_candidate_inventory_keys",
         semantics="exact_m4_probabilistic",
         evidence_refs=sorted(row.evidence_id for row in rows),
@@ -237,8 +237,8 @@ def compare_decisions(
     metrics = [
         _compare_metric(
             name,
-            _candidate_metric(baseline, name, field, unit=unit, semantics=semantics),
-            _candidate_metric(hypothetical, name, field, unit=unit, semantics=semantics),
+            _candidate_metric(baseline, name, field, unit=(baseline.provenance.get('currency') or unit) if unit=='monetary_unit_unspecified' else unit, semantics=semantics),
+            _candidate_metric(hypothetical, name, field, unit=(hypothetical.provenance.get('currency') or unit) if unit=='monetary_unit_unspecified' else unit, semantics=semantics),
         )
         for name, field, unit, semantics in metric_specs
     ]
@@ -284,7 +284,8 @@ def compare_decisions(
         baseline_strategy=baseline.recommended_strategy,
         hypothetical_strategy=hypothetical.recommended_strategy,
         first_stage_order_deltas=_order_deltas(
-            baseline.immediate_orders, hypothetical.immediate_orders
+            [*baseline.immediate_orders, *baseline.scheduled_orders],
+            [*hypothetical.immediate_orders, *hypothetical.scheduled_orders],
         ),
         recourse_order_deltas=_order_deltas(
             baseline.conditional_recourse, hypothetical.conditional_recourse
@@ -299,7 +300,7 @@ def compare_decisions(
             hypothetical.confidence_decomposition.overall_decision_readiness.status
         ),
         warnings=[
-            "Monetary comparisons retain the source's unspecified currency unit.",
+            "Currency comes from each bound request; historical unbound currency remains unspecified. Different currencies are not comparable.",
             "Deltas are model-derived comparisons, not observed or causal effects.",
         ],
     )

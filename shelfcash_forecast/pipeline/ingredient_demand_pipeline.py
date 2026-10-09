@@ -52,6 +52,7 @@ def predict_ingredient_demand(
     forecast_horizon: int = 7,
     *,
     execution_mode: str = "production",
+    override_policy=None,
 ) -> IngredientDemandPackage:
     """Run existing forecast inference, then deterministic Recipe/BOM propagation."""
 
@@ -74,6 +75,7 @@ def predict_ingredient_demand(
         cutoff_date=cutoff_date,
         forecast_horizon=forecast_horizon,
         execution_mode=execution_mode,
+        override_policy=override_policy,
     )
     return propagate_ingredient_demand(
         forecast=forecast,

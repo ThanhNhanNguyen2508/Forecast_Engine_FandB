@@ -86,6 +86,9 @@ class ProcurementDiagnostic(StrictOptimizationContract):
     action_required: list[str] = Field(default_factory=list)
     source: dict[str, Any] = Field(default_factory=dict)
     details: dict[str, Any] = Field(default_factory=dict)
+    field_paths: list[str] = Field(default_factory=list)
+    value: Any = None
+    expected_meaning: str | None = None
 
 
 class SolverLimits(StrictOptimizationContract):
@@ -94,6 +97,8 @@ class SolverLimits(StrictOptimizationContract):
     max_refinement_iterations: StrictInt = Field(default=2, ge=0, le=20)
     max_model_variables: StrictInt = Field(default=250000, ge=100, le=2000000)
     max_model_constraints: StrictInt = Field(default=1000000, ge=100, le=8000000)
+    joint_fallback: bool = True
+    fallback_reserve_fraction: float = Field(default=0.4, gt=0, lt=1)
 
 
 class SupplierOffer(StrictOptimizationContract): # “Supplier này đang offer cho tôi mua nguyên liệu gì, với điều kiện nào?”
@@ -108,8 +113,8 @@ class SupplierOffer(StrictOptimizationContract): # “Supplier này đang offer 
     delivery_cost: float = Field(default=0, ge=0)
     minimum_order_quantity: float = Field(default=0, ge=0)
     maximum_order_quantity: float | None = Field(default=None, gt=0)
-    lead_time_days: int = Field(ge=0)
-    shelf_life_days: int | None = Field(
+    lead_time_days: StrictInt = Field(ge=0, le=3650)
+    shelf_life_days: StrictInt | None = Field(
         default=None,
         ge=0,
         description=(
@@ -436,6 +441,8 @@ class OptimizationRequest(StrictOptimizationContract):
     candidate_generation: Literal['JOINT_MILP','DECOMPOSED_FIXED_CERTIFICATION'] = 'JOINT_MILP'
     planning_binding: dict[str, Any] = Field(default_factory=dict)
     normalized_rules: list[NormalizedBusinessRule] = Field(default_factory=list)
+    timezone: str = 'Asia/Bangkok'
+    entity_display_names: dict[str, dict[str, str]] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def validate_request(self) -> OptimizationRequest:
@@ -580,7 +587,7 @@ class OptimizationResult(StrictOptimizationContract):
     provenance: dict[str, Any] = Field(default_factory=dict)
     warnings: list[str] = Field(default_factory=list)
     schema_version: Literal[2] = 2
-    technical_outcome: Literal["FEASIBLE", "PROVEN_INFEASIBLE", "REJECTED_BY_EXACT_CRITIC", "BLOCKED_INPUT_SEMANTICS", "NOT_EVALUATED", "SEARCH_LIMIT_REACHED"] = "NOT_EVALUATED"
+    technical_outcome: Literal["FEASIBLE", "PROVEN_INFEASIBLE", "REJECTED_BY_EXACT_CRITIC", "BLOCKED_INPUT_SEMANTICS", "NOT_EVALUATED", "SEARCH_LIMIT_REACHED", "INVALID_INPUT", "UNSUPPORTED_INPUT", "SOLVER_ERROR"] = "NOT_EVALUATED"
     technical_feasible: bool | None = None
     business_ready: Literal[False] = False
     execution_authorized: Literal[False] = False
@@ -602,7 +609,7 @@ class OptimizationResult(StrictOptimizationContract):
                 raise ValueError("FEASIBLE_REQUIRES_FULL_EVALUATION_COVERAGE")
         elif self.technical_outcome == "FEASIBLE" or self.technical_feasible is True:
             raise ValueError("FEASIBLE_REQUIRES_SELECTED_PLAN")
-        if self.technical_outcome in {"BLOCKED_INPUT_SEMANTICS","SEARCH_LIMIT_REACHED","NOT_EVALUATED"} and self.technical_feasible is not None:
+        if self.technical_outcome in {"BLOCKED_INPUT_SEMANTICS","SEARCH_LIMIT_REACHED","NOT_EVALUATED","INVALID_INPUT","UNSUPPORTED_INPUT","SOLVER_ERROR"} and self.technical_feasible is not None:
             raise ValueError("UNDETERMINED_OUTCOME_REQUIRES_NULL_FEASIBILITY")
         if self.technical_outcome in {"PROVEN_INFEASIBLE","REJECTED_BY_EXACT_CRITIC"} and self.technical_feasible is not False:
             raise ValueError("NEGATIVE_OUTCOME_REQUIRES_FALSE_FEASIBILITY")

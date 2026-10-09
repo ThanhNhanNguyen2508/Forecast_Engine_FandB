@@ -11,6 +11,8 @@ from shelfcash_forecast.optimization.adapters import decisions_to_planned_inboun
 from shelfcash_forecast.optimization.contracts import CandidateEvaluation, ProcurementPlan
 from shelfcash_forecast.optimization.critic import critique_procurement_plan
 from shelfcash_forecast.optimization.lot_milp import mean_world
+from shelfcash_forecast.inventory.adapters import canonical_demand_scenarios
+from shelfcash_forecast.bom.units import UnitConverter
 
 
 def evaluate_candidate_plan(plan, request, profile, *, lead_time_model=None, shelf_life_model=None):
@@ -24,6 +26,7 @@ def evaluate_candidate_plan(plan, request, profile, *, lead_time_model=None, she
     full = request.evaluation_scenarios or request.demand_scenarios
     physics_worlds = request.demand_scenarios if plan.provenance.get("mode") != "deterministic" else [mean_world(request)]
     def exact(worlds):
+        worlds = canonical_demand_scenarios(worlds, UnitConverter(request.unit_conversions))
         kwargs = dict(policy=request.inventory_policy, unit_conversions=conversions,
                       cost_assumptions=request.cost_assumptions,
                       simulation_start_date=request.decision_date + timedelta(days=1),

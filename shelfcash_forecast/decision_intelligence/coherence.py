@@ -312,9 +312,20 @@ def evaluate_artifact_coherence(
                 "forecast_package",
                 "product_scenario_bundle",
             )
+        declared_keys=set();declared_source=None;fixed_method=product_bundle.scenario_method
+        if product_bundle.scenario_method in {'declared_cold_start_levels','residual_bootstrap_with_declared_overrides'}:
+            from shelfcash_forecast.pipeline.forecast_overrides import ForecastOverridePolicy
+            policy=ForecastOverridePolicy.model_validate(product_bundle.diagnostics.get('declared_distribution',{}))
+            declared_keys={(p.store_id,p.product_id,p.target_date) for p in policy.predictions}
+            declared_source='DECLARED_FORECAST_OVERRIDE:'+policy.scenario_evidence_id
+            fixed_method=product_bundle.diagnostics.get('fixed_scenario_method')
+            if forecast is not None and forecast.scenario_assumptions!=policy.model_dump(mode='json'):
+                add('M6_COHERENCE_DECLARED_FORECAST_POLICY_MISMATCH','ERROR',
+                    'Declared scenario distribution differs from the upstream cold-start policy.',
+                    'forecast_package.scenario_assumptions','product_scenario_bundle.diagnostics.declared_distribution')
         if any(
-            line.source_model_version != product_bundle.model_version
-            or line.scenario_method != product_bundle.scenario_method
+            line.source_model_version != (declared_source if (line.store_id,line.product_id,line.target_date) in declared_keys else product_bundle.model_version)
+            or line.scenario_method != ('declared_cold_start_levels' if (line.store_id,line.product_id,line.target_date) in declared_keys else fixed_method)
             for scenario in product_bundle.scenarios
             for line in scenario.lines
         ):

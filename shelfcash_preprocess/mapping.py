@@ -113,6 +113,7 @@ ALIASES: dict[Role, dict[str, set[str]]] = {
         "received_date": {"received_date", "ngay_nhap_hang", "arrival_date"},
     },
     Role.SUPPLIER_RULES: {
+        'price_basis': {'price_basis','gia_theo','price_unit_basis'},
         "supplier_id": {"supplier_id", "vendor", "ncc"},
         "ingredient_name": {"ingredient_name", "material", "ten_hang"},
         "ingredient_id": {"ingredient_id", "ma_nl"},

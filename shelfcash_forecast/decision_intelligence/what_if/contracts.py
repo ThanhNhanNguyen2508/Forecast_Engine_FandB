@@ -26,6 +26,7 @@ WhatIfExecutionMode = Literal["DRAFT_ONLY", "EXECUTE_HYPOTHETICAL"]
 
 
 class DemandSelector(StrictDecisionContract):
+    scope: Literal['SELECTED_KEYS','ALL_APPLICABLE_DEMAND']='SELECTED_KEYS'
     scenario_id: str | None = None
     store_id: str | None = None
     ingredient_id: str | None = None
@@ -35,7 +36,9 @@ class DemandSelector(StrictDecisionContract):
 
     @model_validator(mode="after")
     def require_scope(self) -> DemandSelector:
-        if not any(
+        if self.scope=='ALL_APPLICABLE_DEMAND' and any((self.scenario_id,self.store_id,self.ingredient_id,self.unit,self.target_date)):
+            raise ValueError('ALL_SCOPE_CANNOT_HAVE_ENTITY_FILTERS')
+        if self.scope!='ALL_APPLICABLE_DEMAND' and not any(
             (
                 self.scenario_id,
                 self.store_id,
@@ -51,7 +54,7 @@ class DemandSelector(StrictDecisionContract):
 class DemandScaleModification(StrictDecisionContract):
     modification_type: Literal["DEMAND_SCALE"] = "DEMAND_SCALE"
     selector: DemandSelector
-    multiplier: float = Field(gt=0)
+    multiplier: float = Field(ge=0)
 
 
 class SupplierOfferModification(StrictDecisionContract):

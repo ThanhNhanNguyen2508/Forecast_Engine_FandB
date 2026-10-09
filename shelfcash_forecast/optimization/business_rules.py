@@ -76,7 +76,14 @@ def evaluate_rules(rules, simulation, orders):
                     if rule.semantics=='PURCHASE_COVER_DAYS': grouped[str(o.arrival_date)] += o.order_quantity
                     else: grouped[o.offer_id] = o.shelf_life_days if o.shelf_life_days is not None else -1
             for identity,q in grouped.items():
-                value=q/(rule.reference_daily_quantity or 1e-300) if rule.semantics=='PURCHASE_COVER_DAYS' else q
+                if rule.semantics=='PURCHASE_COVER_DAYS' and rule.reference_daily_quantity==0:
+                    # Cross-multiplication gives quantity <= target_days * 0.
+                    # Coverage days is undefined; it must never be an infinite fact.
+                    observations.append({'identity':identity,'observed':None,'violation':q,'weight':1.0,
+                        'violation_measure':'base quantity above zero purchase bound',
+                        'required_maximum_base_quantity':0,'purchased_base_quantity':q})
+                    continue
+                value=q/rule.reference_daily_quantity if rule.semantics=='PURCHASE_COVER_DAYS' else q
                 gap=max(0,value-target) if rule.semantics=='PURCHASE_COVER_DAYS' else max(0,target-value)
                 observations.append({'identity':identity,'observed':value,'violation':gap,'weight':1.0})
         elif rule.semantics=='PER_KEY_EXPECTED_FILL':
@@ -111,8 +118,11 @@ def evaluate_rules(rules, simulation, orders):
             'classification':rule.classification,'target':target,'unit':rule.unit,
             'status':'PASS' if maximum<=1e-8 else 'FAIL' if rule.classification=='HARD' else 'TARGET_MISS',
             'maximum_violation':maximum,'weighted_violation':weighted,
+            'violation_unit':next((l.unit for w in simulation.results for l in w.daily_ledgers
+                if (l.store_id,l.ingredient_id)==(rule.store_id,rule.ingredient_id)), 'base quantity')
+                if rule.semantics=='PURCHASE_COVER_DAYS' and rule.reference_daily_quantity==0 else rule.unit,
             'soft_penalty_vnd':weighted*rule.penalty_currency_per_unit,'evaluation_count':len(observations),
-            'maximum_observed':max((o['observed'] for o in observations),default=None),
+            'maximum_observed':max((o['observed'] for o in observations if o['observed'] is not None),default=None),
             'worst_observations':sorted(observations,key=lambda o:-o['violation'])[:10],
             'assumption_refs':rule.assumption_refs})
     return evaluations

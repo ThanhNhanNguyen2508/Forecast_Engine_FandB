@@ -46,6 +46,7 @@ class ForecastState:
     execution_mode: str
     quality_report: DataQualityReport
     stage: str = "m1"
+    override_policy: object | None = None
 
 
 def predict_m1(
@@ -55,6 +56,7 @@ def predict_m1(
     forecast_horizon: int = 7,
     *,
     execution_mode: str = "production",
+    override_policy=None,
 ) -> ForecastState:
     """Load fixed artifacts and stop after M1 quantile crossing repair."""
 
@@ -75,15 +77,24 @@ def predict_m1(
             raise InsufficientDataError("ARTIFACT_NOT_PROMOTED_FOR_PRODUCTION")
         if pd.Timestamp(available).tz_localize(None).normalize() > cutoff:
             raise InsufficientDataError("ARTIFACT_NOT_AVAILABLE_AT_PRODUCTION_ORIGIN")
-    if forecast_horizon < 1 or forecast_horizon > max(config.horizons):
-        raise ValueError(f"forecast_horizon must be in 1..{max(config.horizons)}.")
+    if forecast_horizon < 1 or forecast_horizon > (366 if override_policy else max(config.horizons)):
+        raise InsufficientDataError(f"FIXED_MODEL_HORIZON_UNSUPPORTED: supported fixed range 1..{max(config.horizons)}; declared override range 1..366")
 
     adapted = adapt_forecast_input(canonical_data, config)
     sales, quality_report = validate_sales(adapted.sales_history)
     calendar = validate_calendar(adapted.calendar_features, quality_report)
     sales = sales.loc[sales["date"].le(cutoff)].copy()
+    override_frame = None
+    if override_policy is not None:
+        from shelfcash_forecast.pipeline.forecast_overrides import override_rows
+        override_frame=override_rows(override_policy,cutoff,forecast_horizon,calendar)
+        overridden={(p.store_id,p.product_id) for p in override_policy.predictions}
+        sales=sales[~pd.MultiIndex.from_frame(sales[['store_key','product_key']]).isin(overridden)]
+    if sales.empty and override_frame is not None:
+        return ForecastState(override_frame,artifacts,cutoff,forecast_horizon,execution_mode,quality_report,override_policy=override_policy)
     if sales.empty:
         raise InsufficientDataError("No sales_history exists at or before cutoff_date.")
+    if forecast_horizon>max(config.horizons):raise InsufficientDataError('FIXED_MODEL_HORIZON_UNSUPPORTED: override every applicable product or use trained range')
 
     panel = build_daily_panel(sales, calendar, end_date=cutoff)
     panel = resolve_missing_sales(panel)
@@ -94,6 +105,8 @@ def predict_m1(
     runtime = add_deterministic_future_features(runtime)
     runtime = add_calendar_future_features(runtime, calendar)
     runtime = artifacts.encoder.transform(runtime)
+    if runtime['product_code'].eq(-1).any() or runtime['store_code'].eq(-1).any() or runtime['history_observation_count'].lt(config.minimum_history_observations).any():
+        raise InsufficientDataError('COLD_START_POLICY_REQUIRED: explicit forecast overrides and scenario assumptions required')
     validate_runtime_feature_schema(
         runtime,
         expected_features=artifacts.model_bundle.feature_names,
@@ -103,6 +116,8 @@ def predict_m1(
     runtime = correct_quantile_crossing(
         predict_raw_quantiles(artifacts.model_bundle, runtime)
     )
+    runtime['forecast_method']='FIXED_LIGHTGBM_POINT_CQR'
+    if override_frame is not None:runtime=pd.concat([runtime,override_frame],ignore_index=True)
     return ForecastState(
         frame=runtime,
         artifacts=artifacts,
@@ -110,6 +125,7 @@ def predict_m1(
         forecast_horizon=forecast_horizon,
         execution_mode=execution_mode,
         quality_report=quality_report,
+        override_policy=override_policy,
     )
 
 
@@ -117,7 +133,10 @@ def correct_forecast_point(state: ForecastState) -> ForecastState:
     """Apply the frozen point corrector once, before interval calibration."""
     if state.stage != "m1":
         raise ValueError("Point correction requires an M1 checkpoint.")
-    runtime = apply_point_corrector(state.frame, state.artifacts.point_corrector)
+    mask=state.frame.get('forecast_method',pd.Series('FIXED_LIGHTGBM_POINT_CQR',index=state.frame.index)).eq('DECLARED_FORECAST_OVERRIDE')
+    if mask.all():runtime=state.frame.copy()
+    elif mask.any():runtime=pd.concat([apply_point_corrector(state.frame.loc[~mask],state.artifacts.point_corrector),state.frame.loc[mask]],ignore_index=True)
+    else:runtime = apply_point_corrector(state.frame, state.artifacts.point_corrector)
     return replace(state, frame=runtime, stage="point")
 
 
@@ -125,8 +144,12 @@ def calibrate_forecast(state: ForecastState) -> ForecastState:
     """Apply current CQR code and finalize decision values; never fit CQR."""
     if state.stage != "point":
         raise ValueError("M2 calibration requires a point-corrected checkpoint.")
-    runtime = apply_cqr_calibrator(state.frame, state.artifacts.calibrator)
-    runtime["baseline_p50"] = seasonal_naive_predict(runtime).to_numpy()
+    mask=state.frame.get('forecast_method',pd.Series('FIXED_LIGHTGBM_POINT_CQR',index=state.frame.index)).eq('DECLARED_FORECAST_OVERRIDE')
+    if mask.all():runtime=state.frame.copy()
+    else:
+        fixed=apply_cqr_calibrator(state.frame.loc[~mask],state.artifacts.calibrator)
+        fixed['baseline_p50']=seasonal_naive_predict(fixed).to_numpy()
+        runtime=pd.concat([fixed,state.frame.loc[mask]],ignore_index=True) if mask.any() else fixed
     closed = runtime["target_store_closed"].eq(1)
     for column in (
         "p25",
@@ -156,6 +179,9 @@ def build_forecast_package(state: ForecastState) -> ForecastPackage:
     predictions: list[ForecastPrediction] = []
     for row in runtime.itertuples(index=False):
         warnings: list[str] = []
+        if getattr(row,'forecast_method','')=='DECLARED_FORECAST_OVERRIDE':
+            warnings.append('COLD_START_DECLARED_DEMAND_NOT_MODEL_PREDICTION')
+            warnings.append('DECLARED_INTERVAL_NOT_EMPIRICALLY_CALIBRATED')
         if row.product_code == -1:
             warnings.append("UNSEEN_PRODUCT")
         if row.calibration_source == "global":
@@ -182,14 +208,19 @@ def build_forecast_package(state: ForecastState) -> ForecastPackage:
                 baseline_p50=float(row.baseline_p50),
                 calibration_source=str(row.calibration_source),
                 warnings=warnings,
+                forecast_method=getattr(row,'forecast_method','FIXED_LIGHTGBM_POINT_CQR'),
+                provenance={'evidence_id':getattr(row,'forecast_evidence_id',None),'classification':getattr(row,'forecast_classification',None)} if getattr(row,'forecast_method','')=='DECLARED_FORECAST_OVERRIDE' else {},
             )
         )
     return ForecastPackage(
         forecast_date=state.cutoff.date(),
         forecast_horizon=state.forecast_horizon,
-        model_version=str(artifacts.metadata["model_version"]),
+        model_version=('DECLARED_FORECAST_OVERRIDE:'+state.override_policy.scenario_evidence_id
+            if predictions and all(p.forecast_method=='DECLARED_FORECAST_OVERRIDE' for p in predictions)
+            else str(artifacts.metadata["model_version"])),
         predictions=predictions,
         warnings=sorted(set(global_warnings)),
+        scenario_assumptions=state.override_policy.model_dump(mode='json') if state.override_policy else {},
     )
 
 
@@ -200,6 +231,7 @@ def predict_demand(
     forecast_horizon: int = 7,
     *,
     execution_mode: str = "production",
+    override_policy=None,
 ) -> ForecastPackage:
     """Load immutable artifacts and forecast strictly after the inclusive cutoff.
 
@@ -212,6 +244,7 @@ def predict_demand(
         cutoff_date,
         forecast_horizon,
         execution_mode=execution_mode,
+        override_policy=override_policy,
     )
     state = correct_forecast_point(state)
     state = calibrate_forecast(state)

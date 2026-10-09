@@ -134,10 +134,10 @@ What-if. `budget` trong planning JSON được áp dụng; `stress.demand_multip
 | -BundlePath | --bundle | sealed bundle có sẵn; loại trừ InputPath |
 | -ArtifactsPath | --artifacts | m1_m2_research_20261004T054706Z/artifacts |
 | -OutputDir | --output-dir | pipeline_until_<milestone>; custom output cũng phải do runner sở hữu để ghi đè |
-| -CutoffDate | --cutoff-date | 2026-08-12, inclusive EOD |
+| -CutoffDate | --cutoff-date | Required YYYY-MM-DD, inclusive EOD |
 | -Horizon | --horizon | 7; không vượt artifact config |
 | -ExecutionMode | --execution-mode | demo; cũng có production/backtest_replay, giữ nguyên core checks |
-| -StoreId / -DateLocale | --store-id / --date-locale | STORE_A / DMY, fallback preprocess |
+| -StoreId / -DateLocale | --store-id / --date-locale | Explicit mapping or discovery/review; no store/locale fallback |
 | -ContextMetadataFile | --context-metadata | JSON object RunContext.metadata; raw input only |
 | -PlanningConfig | --planning-config | JSON planning explicit; bắt buộc cho M5/M6 |
 | -ScenarioCount | --scenario-count | 100; 1..2000, M4 diagnostic scenarios |

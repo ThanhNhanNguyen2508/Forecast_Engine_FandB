@@ -12,11 +12,14 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from shelfcash_forecast.json_output import write_json as _write_json
 
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY_LAYOUT = (SOURCE_ROOT / "shelfcash.config.json").is_file() and (SOURCE_ROOT / "pyproject.toml").is_file()
 ENGINE_ROOT = SOURCE_ROOT if REPOSITORY_LAYOUT else SOURCE_ROOT.parent
+# Deprecated example-path exports for historical readers/tests only. Neither
+# RunOptions nor a generic launcher uses them as missing-input defaults.
 DEFAULT_INPUT = ENGINE_ROOT / "demo/input" if REPOSITORY_LAYOUT else ENGINE_ROOT / "codex_tests/Demo data"
 DEFAULT_ARTIFACTS = (ENGINE_ROOT / "demo/artifacts" if REPOSITORY_LAYOUT else
                     ENGINE_ROOT / "codex_tests/runs/m1_m2_research_20261004T054706Z/artifacts")
@@ -28,21 +31,22 @@ LOCK_FILE = ".pipeline.lock"
 @dataclass(frozen=True)
 class RunOptions:
     output_dir: Path
-    input_path: Path | None = DEFAULT_INPUT
+    input_path: Path | None = None
     bundle_path: Path | None = None
-    artifacts_path: Path = DEFAULT_ARTIFACTS
+    artifacts_path: Path | None = None
     stop_after: str = "m2"
-    cutoff_date: date = date(2026, 8, 12)
+    cutoff_date: date | None = None
     horizon: int = 7
     execution_mode: str = "demo"
-    store_id: str = "STORE_A"
-    date_locale: str = "DMY"
+    store_id: str | None = None
+    date_locale: str | None = None
     context_metadata: Path | None = None
     planning_config: Path | None = None
     scenario_count: int = 100
     seed: int = 42
     optimization_mode: str = "compare"
     workspace_root: Path | None = None
+    forecast_overrides: Path | None = None
 
 
 def default_output_path(stop_after: str) -> Path:
@@ -82,6 +86,8 @@ def reserve_output(options: RunOptions) -> Path:
         raise ValueError(f"Unknown milestone: {options.stop_after}")
     if (options.input_path is None) == (options.bundle_path is None):
         raise ValueError("Specify exactly one raw input path or existing bundle path.")
+    if options.cutoff_date is None:
+        raise ValueError('PIPELINE_CUTOFF_REQUIRED: Provide cutoff_date or an existing bundle with a declared cutoff date')
     if options.horizon < 1:
         raise ValueError("horizon must be positive")
     if options.execution_mode not in {"demo", "production", "backtest_replay"}:
@@ -92,21 +98,21 @@ def reserve_output(options: RunOptions) -> Path:
         raise ValueError("Unsupported optimization mode")
     if options.bundle_path is not None and options.context_metadata is not None:
         raise ValueError("Context metadata applies to raw preprocessing only; existing bundles are read-only.")
-    for config in (options.context_metadata, options.planning_config):
+    for config in (options.context_metadata, options.planning_config,options.forecast_overrides):
         if config is not None and not config.is_file():
             raise FileNotFoundError(f"Configuration not found: {config}")
     input_path = options.bundle_path or options.input_path
     assert input_path is not None
     if not input_path.exists():
         raise FileNotFoundError(f"Input not found: {input_path}")
-    if options.stop_after != "preprocess" and not options.artifacts_path.is_dir():
+    if options.stop_after != "preprocess" and (options.artifacts_path is None or not options.artifacts_path.is_dir()):
         raise FileNotFoundError(f"Fixed artifacts not found: {options.artifacts_path}")
     workspace = options.workspace_root or ENGINE_ROOT
     source_paths = ([workspace / name for name in
                      ("shelfcash_forecast", "shelfcash_preprocess", "shelfcash_pipeline", "scripts", "tests", ".git")]
                     if (workspace / "pyproject.toml").is_file() and (workspace / "shelfcash_pipeline").is_dir()
                     else [workspace / "source_code"])
-    protected = [*source_paths, input_path, options.artifacts_path]
+    protected = [*source_paths, input_path, *([options.artifacts_path] if options.artifacts_path is not None else [])]
     protected.extend(config for config in (options.context_metadata, options.planning_config) if config is not None)
     for path in protected:
         resolved = path.resolve()
@@ -161,9 +167,7 @@ def reserve_output(options: RunOptions) -> Path:
 
 
 def write_json(path: Path, value: Any) -> None:
-    with path.open("w", encoding="utf-8") as handle:
-        json.dump(value, handle, ensure_ascii=False, indent=2, allow_nan=False)
-        handle.write("\n")
+    _write_json(path,value)
 
 
 def save_checkpoint(output: Path, stage: str, frame: pd.DataFrame) -> dict[str, Any]:

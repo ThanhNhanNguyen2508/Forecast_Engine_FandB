@@ -65,7 +65,7 @@ class PlanningConfig(ConfigContract):
     scenario_count: StrictInt | None = Field(default=None, ge=1, le=2000)
     optimization_scenario_count: StrictInt = Field(default=100, ge=1, le=2000)
     selection_seed: StrictInt = 42
-    scenario_method: Literal["residual_bootstrap"] = "residual_bootstrap"
+    scenario_method: Literal["residual_bootstrap","residual_bootstrap_with_declared_overrides","declared_cold_start_levels"] = "residual_bootstrap"
     evaluation: Literal["FULL_M4_POOL"] = "FULL_M4_POOL"
     budget: float | None = Field(default=None, ge=0)
     budget_scope: Literal["ALL_COMMITTED_REGULAR_PURCHASE_PLUS_DELIVERY"] = "ALL_COMMITTED_REGULAR_PURCHASE_PLUS_DELIVERY"
